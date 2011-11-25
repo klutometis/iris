@@ -1,0 +1,122 @@
+* TODO Get something working.
+  #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
+    addClassPath("lib/stt.jar");
+    addClassPath("lib/minim.jar");
+    addClassPath("lib/minim-spi.jar");
+    addClassPath("lib/jsminim.jar");
+    addClassPath("lib/tritonus_share.jar");
+    addClassPath("lib/javaFlacEncoder-0.1.jar");
+    addClassPath("lib/core.jar");
+    
+    import com.getflourish.stt.STT;
+    import processing.core.PApplet;
+    
+    new PApplet() {
+            public setup() {
+                // size(400, 400);
+                print("oeunthouethn");
+                noLoop();
+            }
+    
+            draw() {
+                // background(0);
+            }
+    
+            transcribe(utterance, confidence) {
+            }
+    
+            keyPressed() {
+            }
+    
+            keyReleased() {
+            }
+        };
+    
+    stt = new STT(applet);
+    
+  #+END_SRC
+
+  If we're going to do this without the autorecord and processing
+  cruft, we need (I was going to say [[http://code.compartmental.net/tools/minim/][minim]], but it's some kind of
+  Processing-specific piece of shit) [[http://www.tritonus.org/][tritonus]].
+
+  On the [[https://github.com/fx-lange/ofxGSTT][C-side]], on the other hand, there's [[http://www.mega-nerd.com/libsndfile/][sndfile]] and [[http://flac.sourceforge.net/][libFlac]]; looks
+  like [[http://freedesktop.org/software/pulseaudio/doxygen/simple.html][pulseaudio]]'s the way to go, though, for actually recording.
+
+  What about [[http://www.jsresources.org/examples/audio_playing_recording.html][this shit]] on Java? Or [[http://docs.oracle.com/javase/tutorial/sound/accessing.html][from scratch]]. Write with [[http://javaflacencoder.sourceforge.net/][this]]?
+
+  #+BEGIN_SRC java :tangle mixer.bsh :shebang #!/usr/bin/env bsh
+    addClassPath("lib/guava-10.0.1.jar");
+    addClassPath("lib/javaFlacEncoder-0.2.3.jar");
+    addClassPath("lib/jflac-codec-1.4.0-SNAPSHOT.jar");
+    
+    import javax.sound.sampled.AudioSystem;
+    import javax.sound.sampled.Port;
+    import javax.sound.sampled.TargetDataLine;
+    import javax.sound.sampled.DataLine;
+    import javax.sound.sampled.AudioFormat;
+    import java.io.ByteArrayOutputStream;
+    
+    import com.google.common.collect.ObjectArrays;
+    import javaFlacEncoder.FLACFileOutputStream;
+    import org.kc7bfi.jflac.sound.spi.FlacFileFormatType;
+    import org.kc7bfi.jflac.sound.spi.FlacEncoding;
+    
+    // print(AudioSystem.getMixerInfo());
+    // print(AudioSystem.isLineSupported(Port.Info.MICROPHONE));
+    // print(AudioSystem.getLine(TargetDataLine
+    
+    flac = new FLACFileOutputStream("harro.flac");
+    // format = new AudioFormat((float) 8000.0, 8, 1, true, false);
+    // encoding, sample-rate, sample-size-in-bits, channels, frame-size,
+    // frame-rate, big-endian
+    format = new AudioFormat(FlacEncoding.FLAC, // encoding
+                             44100,              // sample-rate
+                             16,                // sample-size-in-bits
+                             2,                 // channels
+                             0,                 // frame-size
+                             0,               // frame-rate
+                             true);              // big-endian
+    
+    info = new DataLine.Info(TargetDataLine.class, format);
+    // print(AudioSystem.isLineSupported(info));
+    line = AudioSystem.getLine(info);
+    line.open(format);
+    out = new ByteArrayOutputStream();
+    // harro = ObjectArrays.newArray(byte[].class, 256);
+    data = new byte[line.getBufferSize() / 5];
+    line.start();
+    stopped = false;
+    // while (!stopped) {
+    // }
+    bytesRead = line.read(data, 0, data.length);
+    flac.write(data, 0, bytesRead);
+    out.write(data, 0, bytesRead);
+    print(out);
+    line.drain();
+    line.stop();
+    
+    // fileOut = new File("ohjes.wav");
+    
+    
+    // for (info: AudioSystem.getMixerInfo()) {
+    //     print(AudioSystem.getMixer(info));
+    //     mixer = AudioSystem.getMixer(info);
+    //     // print("SOURCE");
+    //     // print(mixer.getSourceLineInfo());
+    //     print("TARGET");
+    //     print(mixer.getTargetLineInfo());
+    //     for (info: mixer.getTargetLineInfo()) {
+    //         print("TARGET-LINE-INFO");
+    //         print(info);
+    //         print(info.getLineClass());
+    //     }
+    //     print("TARGET-LINES");
+    //     print(mixer.getTargetLines());
+    //     for (line: mixer.getTargetLines()) {
+    //         print("TARGET-LINE-CLASS");
+    //         print(line.getClass());
+    //     }
+    // }
+    
+  #+END_SRC
