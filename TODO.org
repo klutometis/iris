@@ -68,12 +68,25 @@
     
     import com.google.common.collect.ObjectArrays;
     import javaFlacEncoder.FLACFileOutputStream;
-    import org.kc7bfi.jflac.sound.spi.FlacFileFormatType;
     import org.kc7bfi.jflac.sound.spi.FlacEncoding;
+    import org.kc7bfi.jflac.sound.spi.FlacFileFormatType;
+    import org.kc7bfi.jflac.sound.spi.FlacFormatConversionProvider;
     
     // It's a shame we have to specify this: command-line param?
     INPUT_INDEX = 1;
+    // samplerate, samplesize, channels, signed, bigendian
     FORMAT = new AudioFormat((float) 8000.0, 8, 1, true, false);
+    // encoding, samplerate, samplesize, channels, framesize, framerate, bigendian
+    // FORMAT = new AudioFormat((float) 8000.0, 8, 1, true, false);
+    print(FORMAT.getChannels());
+    print(FORMAT.getEncoding());
+    print(FORMAT.getFrameRate());
+    print(FORMAT.getFrameSize());
+    print(FORMAT.getSampleRate());
+    print(FORMAT.getSampleSizeInBits());
+    print(FORMAT.isBigEndian());
+    print(FORMAT.properties());
+    print(FORMAT.toString());
     
     mixerInfo = AudioSystem.getMixerInfo()[INPUT_INDEX];
     target = AudioSystem.getTargetDataLine(FORMAT, mixerInfo);
@@ -94,9 +107,15 @@
     timer.schedule(task, 1000);
     
     inputStream = new AudioInputStream(target);
-    AudioSystem.write(inputStream,
-                      AudioFileFormat.Type.WAVE,
-                      new File("harro.wav"));
+    print(new FlacFormatConversionProvider().getTargetEncodings(FORMAT));
+    flacStream = new FlacFormatConversionProvider()
+        .getAudioInputStream(FlacEncoding.FLAC, inputStream);
+    // AudioSystem.write(inputStream,
+    //                   AudioFileFormat.Type.WAVE,
+    //                   new File("harro.wav"));
+    AudioSystem.write(flacStream,
+                      FlacFileFormatType.FLAC,
+                      new File("harro.flac"));
     
   #+END_SRC
 
@@ -265,3 +284,11 @@
   confidence) ...)=; register a series of parsers which either bite or
   pass on. Initially, though, just a parser. Or: one parser; multiple
   dispatchers? Yes.
+
+  =jflac= is out of the question, since the encoder apparently [[https://github.com/hoenigmann/sicp.git][hasn't
+  been implemented]]; the =javaFlacEncoder= has [[https://github.com/hoenigmann/sicp.git][FLACEncoder]] and
+  [[https://github.com/hoenigmann/sicp.git][FLAC_FileEncoder]] (which Schultz used). The latter requires you to
+  serialize wav, convert to FLAC, and send; the former is more complex
+  to use, but can encode without serialization.
+
+  We'll serialize to wav first; optimize later?
