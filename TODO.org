@@ -126,3 +126,9 @@
   stream and not have to rely on e.g. timers and button-events; this
   can be a later optimization, though (also, take a look at the source
   for Florian Schulz' [[http://stt.getflourish.com/][Processing-plugin]]).
+
+  We should have an alternative, by the way, that pulls in the first
+  compatible =TargetDataLine= (and only resorts to a specific index
+  when necessary); in other words, it should be possible to specify
+  the default source and call it a day (though this didn't work for us
+  using PulseAudio).
