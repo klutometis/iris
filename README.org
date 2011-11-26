@@ -1,0 +1,2 @@
+We'd like to make a [[http://developer.factual.com/display/docs/Factual+Developer+APIs+Version+3][Factually-aware]] Siri-clone using Google's
+clandestine [[http://mikepultz.com/2011/03/accessing-google-speech-api-chrome-11/][speech-to-text]] API.

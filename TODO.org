@@ -165,3 +165,16 @@
     // }
     
   #+END_SRC
+
+  This works, by the way (based on [[http://getstreaming.wordpress.com/tag/speech-to-text/][this]]):
+
+  #+BEGIN_SRC sh
+    curl -H "Content-Type: audio/x-flac; rate=16000" -F Content=@harro.flac -k 'https://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&lang=en-US'
+    # {"status":0,"id":"fa71c13664c1b6804bd7f2ef84a2a4e0-1","hypotheses":[{"utterance":"test","confidence":0.95221627}]}
+  #+END_SRC
+
+  Having been converted with this:
+
+  #+BEGIN_SRC sh
+    sox harro.wav -2 -r 16000 harro.flac
+  #+END_SRC
