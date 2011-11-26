@@ -132,3 +132,131 @@
   when necessary); in other words, it should be possible to specify
   the default source and call it a day (though this didn't work for us
   using PulseAudio).
+
+  Florian Schulz even did things like the "analysis of the
+  environmental volume after initialization" (which appears to take
+  the max volume over a two-second interval; discarding the average,
+  AFAICT):
+
+  #+BEGIN_SRC java
+    private void analyzeEnv() {
+        if (!analyzing) {
+            timer2 = new Timer(2000);
+            timer2.start();
+            analyzing = true;
+            volumes = new ArrayList<Float>();
+        }
+        if (timer2 != null) {
+            if (!timer2.isFinished()) {
+                float volume = in.mix.level() * 1000;
+                volumes.add(volume);
+            } else {
+                float avg = 0.0f;
+                float max = 0.0f;
+                for (int i = 0; i < volumes.size(); i++) {
+                    avg += volumes.get(i);
+                    if (volumes.get(i) > max) max = volumes.get(i);
+                }
+                avg /= volumes.size();
+                threshold = (float) Math.ceil(max);
+                System.out.println(getTime() + " Volume threshold automatically set to " + threshold);
+                analyzing = false;
+            }   
+        }   
+    }
+  #+END_SRC
+
+  Look at the encoding from Wave to FLAC, by the way:
+
+  #+BEGIN_SRC java
+    private void onSpeechFinish()
+    {
+        status = "Transcribing";
+        fired = false;
+        recorder.endRecord();
+        recorder.save();
+        recording = false;
+            
+        dispatchTranscriptionEvent(transcriptionThread.getUtterance(), transcriptionThread.getConfidence(), STT.TRANSCRIBING);
+            
+        // Encode the wav to flac
+        String flac = path + fileName + fileCount + ".flac";
+        encoder.encode(new File(path + fileName + fileCount + ".wav"), new File(flac));
+        boolean exists = (new File(flac)).exists();
+        while(exists == false)
+            {   
+                exists = (new File(flac)).exists();     
+            }
+        
+        if (exists) {
+            this.transcribe(flac);
+        } else {
+            System.err.println("Could not transcribe. File was not encoded in time.");
+        }
+            
+        // new file for new speech
+        if (log) fileCount++;
+    }
+    
+  #+END_SRC
+
+  Here's the =handleAuto= loop: where it analyses the environment,
+  sets up the threshould, and dispatches:
+
+  #+BEGIN_SRC java
+    private void handleAuto () {
+        if (analyzing) analyzeEnv();
+        updateVolume(); 
+        if (volume > threshold) {
+            // start recording when someone says something louder than threshold
+            onSpeech();
+        } else {
+            // the magic begins. save it. transcribe it.
+            if (timer.isFinished() && volume < threshold && recorder.isRecording() && recording) {
+                onSpeechFinish();
+            } else if (timer.isFinished() && volume < threshold && !recorder.isRecording()){
+                startListening();
+            }
+        }
+    }
+    
+  #+END_SRC
+
+  No FFT, though; [[https://github.com/taf2/audiosplit][audiosplit]], on the other hand, is doing some kind of
+  root-mean-square analysis. =handleAuto= is called everytime there's
+  a draw-event, by the way:
+
+  #+BEGIN_SRC java
+    public void draw() {    
+        if (auto) handleAuto();
+        // handles active threads and callbacks
+        for (int i = 0; i < threads.size(); i++) {
+            transcriptionThread = threads.get(i); 
+            transcriptionThread.debug = debug;
+            if (transcriptionThread.isAvailable()) {
+                if (transcriptionEvent != null) {
+                    try {
+                        transcriptionEvent.invoke(p, new Object[] { transcriptionThread.getUtterance(), transcriptionThread.getConfidence()});
+                    } catch (IllegalArgumentException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+    
+                    }
+                } else if (transcriptionEvent2 != null) {
+                    dispatchTranscriptionEvent(transcriptionThread.getUtterance(), transcriptionThread.getConfidence(), transcriptionThread.getStatus());
+                }
+                threads.remove(i);
+            }
+    
+            if (debug && !status.equals(lastStatus)) {
+                System.out.println(getTime() + " " + status);
+                lastStatus = status;
+            }
+        }
+    }
+    
+  #+END_SRC
