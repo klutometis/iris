@@ -121,3 +121,8 @@
 : TargetDataLine object (see Listing 7) and to close the output file
 : when that happens.  
   #+END_QUOTE
+
+  It would be pretty cool to detect starts and stops in the sound
+  stream and not have to rely on e.g. timers and button-events; this
+  can be a later optimization, though (also, take a look at the source
+  for Florian Schulz' [[http://stt.getflourish.com/][processing plugin]].
