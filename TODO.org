@@ -260,3 +260,8 @@
     }
     
   #+END_SRC
+
+  Call-back for the reduction-event is: =(lambda (hypothesis
+  confidence) ...)=; register a series of parsers which either bite or
+  pass on. Initially, though, just a parser. Or: one parser; multiple
+  dispatchers? Yes.
