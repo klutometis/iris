@@ -71,98 +71,32 @@
     import org.kc7bfi.jflac.sound.spi.FlacFileFormatType;
     import org.kc7bfi.jflac.sound.spi.FlacEncoding;
     
-    // print(AudioSystem.getMixerInfo());
-    // print(AudioSystem.isLineSupported(Port.Info.MICROPHONE));
-    // print(AudioSystem.getLine(TargetDataLine
+    // It's a shame we have to specify this: command-line param?
+    INPUT_INDEX = 1;
+    FORMAT = new AudioFormat((float) 8000.0, 8, 1, true, false);
     
-    flac = new FLACFileOutputStream("harro.flac");
-    format = new AudioFormat((float) 8000.0, 8, 1, true, false);
-    // encoding, sample-rate, sample-size-in-bits, channels, frame-size,
-    // frame-rate, big-endian
-    // format = new AudioFormat(FlacEncoding.FLAC, // encoding
-    //                          44100,              // sample-rate
-    //                          16,                // sample-size-in-bits
-    //                          2,                 // channels
-    //                          0,                 // frame-size
-    //                          0,               // frame-rate
-    //                          true);              // big-endian
-    
-    print(AudioSystem.getMixerInfo());
-    x = 0;
-    target = AudioSystem.getTargetDataLine(format,
-                                           AudioSystem.getMixerInfo()[1]);
-    target.open(format);
+    mixerInfo = AudioSystem.getMixerInfo()[INPUT_INDEX];
+    target = AudioSystem.getTargetDataLine(FORMAT, mixerInfo);
+    target.open(FORMAT);
     target.start();
+    
+    timer = new Timer();
+    task = new TimerTask() {
+            public void run() {
+                // Otherwise, our WAV is truncated.
+                target.flush();
+                target.stop();
+                target.close();
+                // Otherwise, the program never terminates.
+                timer.cancel();
+            }
+        };
+    timer.schedule(task, 1000);
+    
     inputStream = new AudioInputStream(target);
-    AudioSystem.write(inputStream, AudioFileFormat.Type.WAVE, new File("harro.wav"));
-    for (mixerInfo: AudioSystem.getMixerInfo()) {
-        print(x++);
-        try {
-            target = AudioSystem.getTargetDataLine(format, mixerInfo);
-            target.open(format);
-            target.start();
-            // new Timer() {
-            //     {
-            //         // schedule(new TimerTask() {
-            //         //         run() {
-            //         //         }
-            //         //     },
-            //         //     1000);
-            //     }
-            // };
-            inputStream = new AudioInputStream(target);
-            AudioSystem.write(inputStream, AudioFileFormat.Type.WAVE, new File("harro.wav"));
-        } catch (e) {
-            e.printStackTrace();
-        }
-    }
-    info = new DataLine.Info(TargetDataLine.class, format);
-    // print(AudioSystem.isLineSupported(info));
-    line = AudioSystem.getLine(info);
-    print((TargetDataLine) line);
-    // print(line.getLine());
-    inputstream = new AudioInputStream(line);
-    line.open(format);
-    out = new ByteArrayOutputStream();
-    file = new File("harro.wav");
-    // harro = ObjectArrays.newArray(byte[].class, 256);
-    data = new byte[line.getBufferSize() / 5];
-    line.start();
-    stopped = false;
-    x = 6;
-    while (x-- > 0) {
-        print(x);
-        // AudioSystem.write(inputstream, AudioFileFormat.Type.WAVE, file);
-    }
-    bytesRead = line.read(data, 0, data.length);
-    // flac.write(data, 0, bytesRead);
-    out.write(data, 0, bytesRead);
-    print(out);
-    line.drain();
-    line.stop();
-    
-    // fileOut = new File("ohjes.wav");
-    
-    
-    // for (info: AudioSystem.getMixerInfo()) {
-    //     print(AudioSystem.getMixer(info));
-    //     mixer = AudioSystem.getMixer(info);
-    //     // print("SOURCE");
-    //     // print(mixer.getSourceLineInfo());
-    //     print("TARGET");
-    //     print(mixer.getTargetLineInfo());
-    //     for (info: mixer.getTargetLineInfo()) {
-    //         print("TARGET-LINE-INFO");
-    //         print(info);
-    //         print(info.getLineClass());
-    //     }
-    //     print("TARGET-LINES");
-    //     print(mixer.getTargetLines());
-    //     for (line: mixer.getTargetLines()) {
-    //         print("TARGET-LINE-CLASS");
-    //         print(line.getClass());
-    //     }
-    // }
+    AudioSystem.write(inputStream,
+                      AudioFileFormat.Type.WAVE,
+                      new File("harro.wav"));
     
   #+END_SRC
 
@@ -178,3 +112,12 @@
   #+BEGIN_SRC sh
     sox harro.wav -2 -r 16000 harro.flac
   #+END_SRC
+
+  [[http://www.developer.com/java/other/article.php/2105421/Java-Sound-Capturing-Microphone-Data-into-an-Audio-File.htm][By the way]]:
+
+  #+BEGIN_QUOTE
+: In addition to its other features, the AudioSystem.write method knows
+: how to detect that the stop method has been invoked on the
+: TargetDataLine object (see Listing 7) and to close the output file
+: when that happens.  
+  #+END_QUOTE
