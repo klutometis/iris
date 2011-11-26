@@ -44,6 +44,11 @@
   like [[http://freedesktop.org/software/pulseaudio/doxygen/simple.html][pulseaudio]]'s the way to go, though, for actually recording.
 
   What about [[http://www.jsresources.org/examples/audio_playing_recording.html][this shit]] on Java? Or [[http://docs.oracle.com/javase/tutorial/sound/accessing.html][from scratch]]. Write with [[http://javaflacencoder.sourceforge.net/][this]]?
+  [[http://www.jsresources.org/examples/audio_playing_recording.html][Examples]] of recording to file.
+
+  Now that we have an =AudioInputStream=, can we avoid serializing it
+  before converting to FLAC? =AudioSystem.write= takes an
+  =OutputStream=, by the way.
 
   #+BEGIN_SRC java :tangle mixer.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/guava-10.0.1.jar");
@@ -55,6 +60,10 @@
     import javax.sound.sampled.TargetDataLine;
     import javax.sound.sampled.DataLine;
     import javax.sound.sampled.AudioFormat;
+    import javax.sound.sampled.AudioInputStream;
+    import javax.sound.sampled.AudioFileFormat;
+    import java.util.Timer;
+    import java.util.TimerTask;
     import java.io.ByteArrayOutputStream;
     
     import com.google.common.collect.ObjectArrays;
@@ -67,30 +76,66 @@
     // print(AudioSystem.getLine(TargetDataLine
     
     flac = new FLACFileOutputStream("harro.flac");
-    // format = new AudioFormat((float) 8000.0, 8, 1, true, false);
+    format = new AudioFormat((float) 8000.0, 8, 1, true, false);
     // encoding, sample-rate, sample-size-in-bits, channels, frame-size,
     // frame-rate, big-endian
-    format = new AudioFormat(FlacEncoding.FLAC, // encoding
-                             44100,              // sample-rate
-                             16,                // sample-size-in-bits
-                             2,                 // channels
-                             0,                 // frame-size
-                             0,               // frame-rate
-                             true);              // big-endian
+    // format = new AudioFormat(FlacEncoding.FLAC, // encoding
+    //                          44100,              // sample-rate
+    //                          16,                // sample-size-in-bits
+    //                          2,                 // channels
+    //                          0,                 // frame-size
+    //                          0,               // frame-rate
+    //                          true);              // big-endian
     
+    print(AudioSystem.getMixerInfo());
+    x = 0;
+    target = AudioSystem.getTargetDataLine(format,
+                                           AudioSystem.getMixerInfo()[1]);
+    target.open(format);
+    target.start();
+    inputStream = new AudioInputStream(target);
+    AudioSystem.write(inputStream, AudioFileFormat.Type.WAVE, new File("harro.wav"));
+    for (mixerInfo: AudioSystem.getMixerInfo()) {
+        print(x++);
+        try {
+            target = AudioSystem.getTargetDataLine(format, mixerInfo);
+            target.open(format);
+            target.start();
+            // new Timer() {
+            //     {
+            //         // schedule(new TimerTask() {
+            //         //         run() {
+            //         //         }
+            //         //     },
+            //         //     1000);
+            //     }
+            // };
+            inputStream = new AudioInputStream(target);
+            AudioSystem.write(inputStream, AudioFileFormat.Type.WAVE, new File("harro.wav"));
+        } catch (e) {
+            e.printStackTrace();
+        }
+    }
     info = new DataLine.Info(TargetDataLine.class, format);
     // print(AudioSystem.isLineSupported(info));
     line = AudioSystem.getLine(info);
+    print((TargetDataLine) line);
+    // print(line.getLine());
+    inputstream = new AudioInputStream(line);
     line.open(format);
     out = new ByteArrayOutputStream();
+    file = new File("harro.wav");
     // harro = ObjectArrays.newArray(byte[].class, 256);
     data = new byte[line.getBufferSize() / 5];
     line.start();
     stopped = false;
-    // while (!stopped) {
-    // }
+    x = 6;
+    while (x-- > 0) {
+        print(x);
+        // AudioSystem.write(inputstream, AudioFileFormat.Type.WAVE, file);
+    }
     bytesRead = line.read(data, 0, data.length);
-    flac.write(data, 0, bytesRead);
+    // flac.write(data, 0, bytesRead);
     out.write(data, 0, bytesRead);
     print(out);
     line.drain();
