@@ -68,25 +68,16 @@
     
     import com.google.common.collect.ObjectArrays;
     import javaFlacEncoder.FLACFileOutputStream;
+    import javaFlacEncoder.FLAC_FileEncoder;
+    import javaFlacEncoder.StreamConfiguration;
     import org.kc7bfi.jflac.sound.spi.FlacEncoding;
     import org.kc7bfi.jflac.sound.spi.FlacFileFormatType;
     import org.kc7bfi.jflac.sound.spi.FlacFormatConversionProvider;
     
     // It's a shame we have to specify this: command-line param?
     INPUT_INDEX = 1;
-    // samplerate, samplesize, channels, signed, bigendian
     FORMAT = new AudioFormat((float) 8000.0, 8, 1, true, false);
-    // encoding, samplerate, samplesize, channels, framesize, framerate, bigendian
-    // FORMAT = new AudioFormat((float) 8000.0, 8, 1, true, false);
-    print(FORMAT.getChannels());
-    print(FORMAT.getEncoding());
-    print(FORMAT.getFrameRate());
-    print(FORMAT.getFrameSize());
-    print(FORMAT.getSampleRate());
-    print(FORMAT.getSampleSizeInBits());
-    print(FORMAT.isBigEndian());
-    print(FORMAT.properties());
-    print(FORMAT.toString());
+    FORMAT = new AudioFormat(44000, 16, 1, true, false);
     
     mixerInfo = AudioSystem.getMixerInfo()[INPUT_INDEX];
     target = AudioSystem.getTargetDataLine(FORMAT, mixerInfo);
@@ -104,18 +95,25 @@
                 timer.cancel();
             }
         };
-    timer.schedule(task, 1000);
+    timer.schedule(task, 10000);
     
     inputStream = new AudioInputStream(target);
-    print(new FlacFormatConversionProvider().getTargetEncodings(FORMAT));
-    flacStream = new FlacFormatConversionProvider()
-        .getAudioInputStream(FlacEncoding.FLAC, inputStream);
-    // AudioSystem.write(inputStream,
-    //                   AudioFileFormat.Type.WAVE,
-    //                   new File("harro.wav"));
-    AudioSystem.write(flacStream,
-                      FlacFileFormatType.FLAC,
-                      new File("harro.flac"));
+    
+    wave = new File("harro.wav");
+    flac = new File("harro.flac");
+    
+    AudioSystem.write(inputStream,
+                      AudioFileFormat.Type.WAVE,
+                      wave);
+    
+    encoder = new FLAC_FileEncoder();
+    encoder.setStreamConfig
+        (new StreamConfiguration(1,
+                                 StreamConfiguration.DEFAULT_MIN_BLOCK_SIZE,
+                                 StreamConfiguration.DEFAULT_MAX_BLOCK_SIZE,
+                                 44000,
+                                 16));
+    encoder.encode(wave, flac);
     
   #+END_SRC
 
