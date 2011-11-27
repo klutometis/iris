@@ -76,8 +76,7 @@
     
     // It's a shame we have to specify this: command-line param?
     INPUT_INDEX = 1;
-    FORMAT = new AudioFormat((float) 8000.0, 8, 1, true, false);
-    FORMAT = new AudioFormat(44000, 16, 1, true, false);
+    FORMAT = new AudioFormat(8000, 16, 1, true, false);
     
     mixerInfo = AudioSystem.getMixerInfo()[INPUT_INDEX];
     target = AudioSystem.getTargetDataLine(FORMAT, mixerInfo);
@@ -111,7 +110,7 @@
         (new StreamConfiguration(1,
                                  StreamConfiguration.DEFAULT_MIN_BLOCK_SIZE,
                                  StreamConfiguration.DEFAULT_MAX_BLOCK_SIZE,
-                                 44000,
+                                 8000,
                                  16));
     encoder.encode(wave, flac);
     
@@ -290,3 +289,66 @@
   to use, but can encode without serialization.
 
   We'll serialize to wav first; optimize later?
+
+  HTTP-clients: [[http://hc.apache.org/][Apache commons]]; [[https://github.com/dakrone/clj-http][Clojure wrapper]]. [[http://hc.apache.org/httpcomponents-client-ga/tutorial/html/fundamentals.html#d4e199][Chunked encoding]] with
+  name; [[http://hc.apache.org/httpcomponents-client-ga/httpclient/examples/org/apache/http/examples/client/ClientChunkEncodedPost.java][chunked encoding]] with POST. [[http://www.java-tips.org/other-api-tips/httpclient/how-to-use-multipart-post-method-for-uploading.html][Multi-part POST]]; where
+  [[http://stackoverflow.com/questions/1067655/how-to-upload-a-file-using-java-httpclient-library-working-with-php-strange-pr][rebuketh]]. [[http://evgeny-goldin.com/blog/uploading-files-multipart-post-apache/][Writeup]] from Evgeny Goldin; referencing [[http://radomirml.com/2009/02/13/file-upload-with-httpcomponents-successor-of-commons-httpclient][this]] (which shows,
+  by the way, how to upload from stream).
+
+  ([[http://create.spinvox.com/][SpinVox]] as an alternative to Google, by the way.)
+
+  Florian uses =file= as the parameter; the curl example uses
+  =Content=: they both work.
+
+  #+BEGIN_SRC java
+    HttpClient client = new DefaultHttpClient();
+    client.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
+     
+    HttpPost        post   = new HttpPost( url );
+    MultipartEntity entity = new MultipartEntity( HttpMultipartMode.BROWSER_COMPATIBLE );
+     
+    // For File parameters
+    entity.addPart( paramName, new FileBody((( File ) paramValue ), "application/zip" ));
+     
+    // For usual String parameters
+    entity.addPart( paramName, new StringBody( paramValue.toString(), "text/plain",
+                                               Charset.forName( "UTF-8" )));
+     
+    post.setEntity( entity );
+     
+    // Here we go!
+    String response = EntityUtils.toString( client.execute( post ).getEntity(), "UTF-8" );
+     
+    client.getConnectionManager().shutdown();
+  #+END_SRC
+
+  #+BEGIN_SRC java :tangle post-to-google.bsh :shebang #!/usr/bin/env bsh
+    addClassPath("lib/httpcore-4.2-alpha2.jar");
+    addClassPath("lib/httpclient-4.2-alpha1.jar");
+    addClassPath("lib/httpmime-4.2-alpha1.jar");
+    addClassPath("lib/commons-logging-1.1.1.jar");
+    
+    import java.io.File;
+    
+    import org.apache.http.impl.client.DefaultHttpClient;
+    import org.apache.http.params.CoreProtocolPNames;
+    import org.apache.http.HttpVersion;
+    import org.apache.http.client.methods.HttpPost;
+    import org.apache.http.entity.mime.HttpMultipartMode;
+    import org.apache.http.entity.mime.MultipartEntity;
+    import org.apache.http.entity.mime.content.FileBody;
+    import org.apache.http.util.EntityUtils;
+    import org.apache.http.entity.mime.content.StringBody;
+    
+    client = new DefaultHttpClient();
+    client.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION,
+                                    HttpVersion.HTTP_1_1);
+    post = new HttpPost("https://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&lang=en-US");
+    post.addHeader("Content-type", "audio/x-flac; rate=8000");
+    entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
+    entity.addPart("Content", new FileBody(new File("harro.flac"), "audio/x-flac"));
+    post.setEntity(entity);
+    print(EntityUtils.toString(client.execute(post).getEntity(), "UTF-8"));
+    client.getConnectionManager().shutdown();
+    
+  #+END_SRC
