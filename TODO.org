@@ -330,15 +330,15 @@
     
     import java.io.File;
     
-    import org.apache.http.impl.client.DefaultHttpClient;
-    import org.apache.http.params.CoreProtocolPNames;
     import org.apache.http.HttpVersion;
     import org.apache.http.client.methods.HttpPost;
     import org.apache.http.entity.mime.HttpMultipartMode;
     import org.apache.http.entity.mime.MultipartEntity;
     import org.apache.http.entity.mime.content.FileBody;
-    import org.apache.http.util.EntityUtils;
     import org.apache.http.entity.mime.content.StringBody;
+    import org.apache.http.impl.client.DefaultHttpClient;
+    import org.apache.http.params.CoreProtocolPNames;
+    import org.apache.http.util.EntityUtils;
     
     client = new DefaultHttpClient();
     client.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION,
