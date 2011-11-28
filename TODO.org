@@ -327,6 +327,7 @@
     addClassPath("lib/httpclient-4.2-alpha1.jar");
     addClassPath("lib/httpmime-4.2-alpha1.jar");
     addClassPath("lib/commons-logging-1.1.1.jar");
+    addClassPath("lib/gson-2.0.jar");
     
     import java.io.File;
     
@@ -348,7 +349,33 @@
     entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
     entity.addPart("Content", new FileBody(new File("harro.flac"), "audio/x-flac"));
     post.setEntity(entity);
-    print(EntityUtils.toString(client.execute(post).getEntity(), "UTF-8"));
+    response = EntityUtils.toString(client.execute(post).getEntity(), "UTF-8");
+    print(response);
     client.getConnectionManager().shutdown();
+  #+END_SRC
+
+  With Gson, I think we've reached the limit of beanshell; can't
+  seem to define adequate classes.
+
+  #+BEGIN_SRC java :tangle parse-json.bsh :shebang #!/usr/bin/env bsh
+    addClassPath("lib/gson-2.0.jar");
+    
+    import com.google.gson.Gson;
+    import com.google.gson.reflect.TypeToken;
+    
+    response = "{\"status\":0,\"id\":\"85afc1835bc8583519599abebfd99d81-1\",\"hypotheses\":[{\"utterance\":\"toyota\",\"confidence\":0.95395637}]}";
+    
+    public class Response {
+        int status;
+        String id;
+        Hypothesis[] hypotheses;
+    
+        public class Hypothesis {
+            String utterance;
+            float confidence;
+        }
+    }
+    
+    new Gson().fromJson(response, Response.class);
     
   #+END_SRC
