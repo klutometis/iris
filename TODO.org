@@ -379,3 +379,72 @@
     new Gson().fromJson(response, Response.class);
     
   #+END_SRC
+
+  Rudy mentioned some stuff over farmer's that I didn't capture;
+  something about [[http://en.wikipedia.org/wiki/Root_mean_square][mean square]] (as opposed to root mean square) for
+  establishing a threshold. More sophisticated models do a band-pass
+  filter for (possibly gender-specific) frequencies. Have to ask him
+  for clarity. The model of take-the-max over $n$ milliseconds (Rudy
+  mentioned that 10-20 is legit, btw) is terrible when dealing with
+  e.g. spikes.
+
+  #+BEGIN_SRC clojure :tangle record.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/javaFlacEncoder-0.2.3.jar")
+    (add-classpath "lib/debug-1.0.0-SNAPSHOT.jar")
+    
+    (use 'debug.core)
+    
+    (import '(javax.sound.sampled
+              AudioFormat
+              AudioSystem
+              AudioInputStream
+              AudioFileFormat
+              AudioFileFormat$Type))
+    (import '(java.util
+              Timer
+              TimerTask))
+    (import '(java.io
+              File))
+    (import '(javaFlacEncoder
+              FLAC_FileEncoder
+              StreamConfiguration))
+    
+    (def ^:dynamic *input-index* 
+      "Default index of the recording device; NB: this is a hack."
+      1)
+    
+    (def ^:dynamic *format*
+      (new AudioFormat 8000 16 1 true false))
+    
+    (let [mixer-info (get (AudioSystem/getMixerInfo) *input-index*)
+          target (AudioSystem/getTargetDataLine *format* mixer-info)]
+      ;; `with-open'?
+      (.open target *format*)
+      (.start target)
+      (let [timer (new Timer)
+            task (proxy [TimerTask] []
+                   (run []
+                     (.flush target)
+                     (.stop target)
+                     (.close target)
+                     (.cancel timer)))]
+        (.schedule timer task 2000))
+      (let [input-stream (new AudioInputStream target)]
+        (let [wave (new File "harro.wav")
+              flac (new File "harro.flac")]
+          (AudioSystem/write input-stream
+                             AudioFileFormat$Type/WAVE
+                             wave)
+          (let [encoder (new FLAC_FileEncoder)]
+            (.setStreamConfig encoder
+                              (new StreamConfiguration
+                                   1
+                                   StreamConfiguration/DEFAULT_MIN_BLOCK_SIZE
+                                   StreamConfiguration/DEFAULT_MAX_BLOCK_SIZE
+                                   8000
+                                   16))
+            (.encode encoder wave flac)))))
+    
+  #+END_SRC
