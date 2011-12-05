@@ -393,8 +393,10 @@
     
     (add-classpath "lib/javaFlacEncoder-0.2.3.jar")
     (add-classpath "lib/debug-1.0.0-SNAPSHOT.jar")
+    (add-classpath "lib/lambda-1.0.1-SNAPSHOT.jar")
     
     (use 'debug.core)
+    (use 'lambda.core)
     
     (import '(javax.sound.sampled
               AudioFormat
@@ -415,8 +417,34 @@
       "Default index of the recording device; NB: this is a hack."
       1)
     
+    (def ^:dynamic *sample-rate* 8000)
+    
+    (def ^:dynamic *sample-size* 16)
+    
+    (def ^:dynamic *channels* 1)
+    
+    (def ^:dynamic *signed* true)
+    
+    (def ^:dynamic *big-endian* false)
+    
     (def ^:dynamic *format*
-      (new AudioFormat 8000 16 1 true false))
+      (new AudioFormat
+           *sample-rate*
+           *sample-size*
+           *channels*
+           *signed*
+           *big-endian*))
+    
+    (def ^:dynamic *prefix* "iris")
+    
+    (def create-temporary-file
+      (λ [suffix] (File/createTempFile *prefix* suffix)))
+    
+    (def create-temporary-wave
+      (λ [] (create-temporary-file ".wav")))
+    
+    (def create-temporary-flac
+      (λ [] (create-temporary-file ".flac")))
     
     (let [mixer-info (get (AudioSystem/getMixerInfo) *input-index*)
           target (AudioSystem/getTargetDataLine *format* mixer-info)]
@@ -430,22 +458,23 @@
                      (.stop target)
                      (.close target)
                      (.cancel timer)))]
-        (.schedule timer task 3000))
+        (.schedule timer task 5000))
       (let [input-stream (new AudioInputStream target)]
-        (let [wave (new File "harro.wav")
-              flac (new File "harro.flac")]
+        (let [wave (create-temporary-wave)
+              flac (create-temporary-flac)]
           (AudioSystem/write input-stream
                              AudioFileFormat$Type/WAVE
                              wave)
           (let [encoder (new FLAC_FileEncoder)]
             (.setStreamConfig encoder
                               (new StreamConfiguration
-                                   1
+                                   *channels*
                                    StreamConfiguration/DEFAULT_MIN_BLOCK_SIZE
                                    StreamConfiguration/DEFAULT_MAX_BLOCK_SIZE
-                                   8000
-                                   16))
-            (.encode encoder wave flac)))))
+                                   *sample-rate*
+                                   *sample-size*))
+            (.encode encoder wave flac)
+            (debug (.getAbsolutePath flac))))))
     
   #+END_SRC
 
@@ -482,19 +511,163 @@
                   >
                   hypotheses)))
     
-    (let [{status :status
-           id :id
-           hypotheses :hypotheses}
-          (read-json "{\"status\":0,\"id\":\"23a535f8f07e4c36456156a6fdbfe260-1\",\"hypotheses\":[{\"utterance\":\"test 123\",\"confidence\":0.96106875}]}\n")
-          {utterance :utterance
-           confidence :confidence}
-          ;; Should we sort by confidence and take the first?
-          (random-element hypotheses)]
-      (debug status id hypotheses utterance confidence))
+    (def parse-response
+      (λ [response]
+         (let [{status :status
+                id :id
+                hypotheses :hypotheses}
+               (read-json response)
+               {utterance :utterance
+                confidence :confidence}
+               (car (sort-hypotheses hypotheses))]
+           {:utterance utterance
+            :confidence confidence})))
     
-    ;; (debug (:body
-    ;;         (post "https://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&lang=en-US"
-    ;;               {:multipart [["Content" (file "harro.flac")]]
-    ;;                :headers {"Content-type" "audio/x-flac; rate=8000"}})))
+    (def post-to-google
+      (λ [flac]
+         (:body
+          (post "https://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&lang=en-US"
+                {:multipart [["Content" (file flac)]]
+                 :headers {"Content-type" "audio/x-flac; rate=8000"}}))))
+    
+    (debug (parse-response (post-to-google "harro.flac")))
+    
+  #+END_SRC
+
+  #+BEGIN_SRC clojure :tangle record-and-post.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/cadr-1.0.0-SNAPSHOT-standalone.jar")
+    (add-classpath "lib/clj-http-0.2.6-SNAPSHOT-standalone.jar")
+    (add-classpath "lib/data.json-0.1.3-SNAPSHOT.jar")
+    (add-classpath "lib/debug-1.0.0-SNAPSHOT.jar")
+    (add-classpath "lib/javaFlacEncoder-0.2.3.jar")
+    (add-classpath "lib/lambda-1.0.1-SNAPSHOT.jar")
+    
+    (use 'cadr.core)
+    ;; (require '[clj-http.client :as client])
+    (use '[clj-http.client :only (post)])
+    (use 'clojure.data.json)
+    (use 'clojure.java.io)
+    (use 'debug.core)
+    (use 'lambda.core)
+    (use 'slingshot.slingshot)
+    
+    (import '(java.io
+              File))
+    (import '(java.util
+              Timer
+              TimerTask
+              Random))
+    (import '(javax.sound.sampled
+              AudioFormat
+              AudioSystem
+              AudioInputStream
+              AudioFileFormat
+              AudioFileFormat$Type))
+    
+    (import '(javaFlacEncoder
+              FLAC_FileEncoder
+              StreamConfiguration))
+    
+    (def ^:dynamic *input-index* 
+      "Default index of the recording device; NB: this is a hack."
+      1)
+    
+    (def ^:dynamic *sample-rate* 8000)
+    
+    (def ^:dynamic *sample-size* 16)
+    
+    (def ^:dynamic *channels* 1)
+    
+    (def ^:dynamic *signed* true)
+    
+    (def ^:dynamic *big-endian* false)
+    
+    (def ^:dynamic *format*
+      (new AudioFormat
+           *sample-rate*
+           *sample-size*
+           *channels*
+           *signed*
+           *big-endian*))
+    
+    (def ^:dynamic *prefix* "iris")
+    
+    (def create-temporary-file
+      (λ [suffix] (File/createTempFile *prefix* suffix)))
+    
+    (def create-temporary-wave
+      (λ [] (create-temporary-file ".wav")))
+    
+    (def create-temporary-flac
+      (λ [] (create-temporary-file ".flac")))
+    
+    (let [random (new Random)]
+      (def random-element
+        (λ [list]
+           (nth list (.nextInt random (count list))))))
+    
+    (def sort-hypotheses
+      (λ [hypotheses]
+         (sort-by (λ [hypothesis]
+                     (let [{utterance :utterance confidence :confidence}
+                           hypothesis]
+                       confidence))
+                  >
+                  hypotheses)))
+    
+    (def parse-response
+      (λ [response]
+         (let [{status :status
+                id :id
+                hypotheses :hypotheses}
+               (read-json response)
+               {utterance :utterance
+                confidence :confidence}
+               (car (sort-hypotheses hypotheses))]
+           {:utterance utterance
+            :confidence confidence})))
+    
+    (def ^:dynamic *google-url*
+      "https://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&lang=en-US")
+    
+    (def post-to-google
+      (λ [flac]
+         (:body
+          (post *google-url*
+                {:multipart [["Content" flac]]
+                 :headers {"Content-type"
+                           (format "audio/x-flac; rate=%s" *sample-rate*)}}))))
+    
+    (let [mixer-info (get (AudioSystem/getMixerInfo) *input-index*)
+          target (AudioSystem/getTargetDataLine *format* mixer-info)]
+      ;; `with-open'?
+      (.open target *format*)
+      (.start target)
+      (let [timer (new Timer)
+            task (proxy [TimerTask] []
+                   (run []
+                     (.flush target)
+                     (.stop target)
+                     (.close target)
+                     (.cancel timer)))]
+        (.schedule timer task 3000))
+      (let [input-stream (new AudioInputStream target)]
+        (let [wave (create-temporary-wave)
+              flac (create-temporary-flac)]
+          (AudioSystem/write input-stream
+                             AudioFileFormat$Type/WAVE
+                             wave)
+          (let [encoder (new FLAC_FileEncoder)]
+            (.setStreamConfig encoder
+                              (new StreamConfiguration
+                                   *channels*
+                                   StreamConfiguration/DEFAULT_MIN_BLOCK_SIZE
+                                   StreamConfiguration/DEFAULT_MAX_BLOCK_SIZE
+                                   *sample-rate*
+                                   *sample-size*))
+            (.encode encoder wave flac)
+            (debug (parse-response (post-to-google flac)))))))
     
   #+END_SRC
