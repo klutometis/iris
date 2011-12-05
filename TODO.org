@@ -644,12 +644,15 @@
           target (AudioSystem/getTargetDataLine *format* mixer-info)]
       ;; `with-open'?
       (.open target *format*)
+      (read-line)
+      (println "Start recording.")
       (.start target)
       (let [timer (new Timer)
             task (proxy [TimerTask] []
                    (run []
                      (.flush target)
                      (.stop target)
+                     (println "Stop recording.")
                      (.close target)
                      (.cancel timer)))]
         (.schedule timer task 3000))
