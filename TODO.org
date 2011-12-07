@@ -537,15 +537,9 @@
   #+BEGIN_SRC clojure :tangle record-and-post.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
     
-    (add-classpath "lib/cadr-1.0.0-SNAPSHOT-standalone.jar")
-    (add-classpath "lib/clj-http-0.2.6-SNAPSHOT-standalone.jar")
-    (add-classpath "lib/data.json-0.1.3-SNAPSHOT.jar")
-    (add-classpath "lib/debug-1.0.0-SNAPSHOT.jar")
-    (add-classpath "lib/javaFlacEncoder-0.2.3.jar")
-    (add-classpath "lib/lambda-1.0.1-SNAPSHOT.jar")
+    (add-classpath "lib/*")
     
     (use 'cadr.core)
-    ;; (require '[clj-http.client :as client])
     (use '[clj-http.client :only (post)])
     (use 'clojure.data.json)
     (use 'clojure.java.io)
@@ -655,7 +649,7 @@
                      (println "Stop recording.")
                      (.close target)
                      (.cancel timer)))]
-        (.schedule timer task 5000))
+        (.schedule timer task 10))
       (let [input-stream (new AudioInputStream target)]
         (let [wave (create-temporary-wave)
               flac (create-temporary-flac)]
@@ -806,10 +800,27 @@
   This [[http://code.google.com/apis/maps/documentation/places/][Google places]] query doesn't work for me:
 
   #+BEGIN_EXAMPLE
-    $ curl 'https://maps.googleapis.com/maps/api/place/search/json?location=-33.8670522,151.1957362&radius=500&types=food&name=harbour&sensor=true&key=<key>
+    $ curl 'https://maps.googleapis.com/maps/api/place/search/json?location=-33.8670522,151.1957362&radius=500&types=food&name=harbour&sensor=true&key=<key>'
     {
        "html_attributions" : [],
        "results" : [],
        "status" : "REQUEST_DENIED"
     }    
   #+END_EXAMPLE
+
+  (Had to enable it under the Google API console.)
+
+* TODO Grammar
+  We could go [[http://nlp.stanford.edu/software/lex-parser.shtml][Stanford]] on this; but why not start with regular
+  expressions? Something to the effect of: "find $x$ near $y$;" where
+  $y$ gets thrown into the Factual query:
+  #+BEGIN_SRC clojure
+    (fun/fetch :places :q "Starbucks,Santa Monica")
+  #+END_SRC
+  (we could special-case e.g. "me" and locate the user; but that's
+  extra credit) and where $x$ is a name or one of the [[http://developer.factual.com/display/docs/Places+API+-+Categories][Factual
+  categories]]?
+
+  #+BEGIN_SRC clojure
+
+  #+END_SRC
