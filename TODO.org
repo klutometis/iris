@@ -674,3 +674,142 @@
             (debug (parse-response (post-to-google flac)))))))
     
   #+END_SRC
+
+  We can just do something like this, by the way, without worrying
+  about lat/long:
+
+  #+BEGIN_SRC clojure
+    (fun/fetch :places :q "Starbucks,Santa Monica")
+  #+END_SRC
+* TODO Geocoding, reverse geocoding
+  Check out this [[http://code.google.com/apis/maps/documentation/geocoding/][Google library]]. Also [[http://www.maxmind.com/app/geolitecity][GeoLite City]] for getting city
+  from IP (a hack, to be sure). [[http://snipplr.com/view/7985/googleloaderclientlocation-to-get-a-persons-latlong-using-their-ip-address/][google.loader.ClientLocation]] (for
+  browers, though). [[http://www.caida.org/tools/utilities/netgeo/][NetGeo]] used to work. [[http://www.geobytes.com/IpLocator.htm][GeoBytes]]. [[http://code.google.com/apis/latitude/v1/using_rest.html][Google Latitude]].
+
+  http://code.google.com/apis/accounts/docs/OAuth2InstalledApp.html
+
+  Even using the [[http://code.google.com/p/google-api-java-client/wiki/APIs#Google_Latitude_API][Latitude Java sample]], though, it was a bust.
+
+  [[http://www.hostip.info/use.html][Community-driven]]:
+
+  #+BEGIN_EXAMPLE
+    $ curl http://api.hostip.info/get_html.php
+    Country: UNITED STATES (US)
+    City: Los Angeles, CA
+    IP: 76.79.81.162    
+  #+END_EXAMPLE
+
+  Also:
+
+  #+BEGIN_EXAMPLE
+    $ curl 'http://www.geobytes.com/IpLocator.htm?GetLocation&template=php3.txt&IpAddress=76.79.81.162'
+    <html>
+    <head>
+    
+    <meta name="known" content="true">
+    <meta name="locationcode" content="USCALANG">
+    <meta name="fips104" content="US">
+    <meta name="iso2" content="US">
+    <meta name="iso3" content="USA">
+    <meta name="ison" content="840">
+    <meta name="internet" content="US">
+    <meta name="countryid" content="254">
+    <meta name="country" content="United States">
+    <meta name="regionid" content="126">
+    <meta name="region" content="California">
+    <meta name="regioncode" content="CA">
+    <meta name="adm1code" content="    ">
+    <meta name="cityid" content="7275">
+    <meta name="city" content="Los Angeles">
+    <meta name="latitude" content="34.0452">
+    <meta name="longitude" content="-118.2840">
+    <meta name="timezone" content="-08:00">
+    <meta name="certainty" content="97">
+    <meta name="mapbytesremaining" content="Free">
+    
+    <title>PHP2 Template</title>
+    </head>
+    <body></body>
+    </html>
+    
+  #+END_EXAMPLE
+
+  We should be able to do a city -> lat/long without all the OAuth
+  shit via [[http://code.google.com/apis/maps/documentation/geocoding/index.html][Google]] (just cities, though, not establishments; see
+  [[places]] below):
+
+  #+BEGIN_EXAMPLE
+    $ curl 'http://maps.googleapis.com/maps/api/geocode/xml?address=factual+inc,los+angeles+ca&sensor=false'
+    <?xml version="1.0" encoding="UTF-8"?>
+    <GeocodeResponse>
+     <status>OK</status>
+     <result>
+      <type>locality</type>
+      <type>political</type>
+      <formatted_address>Los Angeles, CA, USA</formatted_address>
+      <address_component>
+       <long_name>Los Angeles</long_name>
+       <short_name>Los Angeles</short_name>
+       <type>locality</type>
+       <type>political</type>
+      </address_component>
+      <address_component>
+       <long_name>Los Angeles</long_name>
+       <short_name>Los Angeles</short_name>
+       <type>administrative_area_level_2</type>
+       <type>political</type>
+      </address_component>
+      <address_component>
+       <long_name>California</long_name>
+       <short_name>CA</short_name>
+       <type>administrative_area_level_1</type>
+       <type>political</type>
+      </address_component>
+      <address_component>
+       <long_name>United States</long_name>
+       <short_name>US</short_name>
+       <type>country</type>
+       <type>political</type>
+      </address_component>
+      <geometry>
+       <location>
+        <lat>34.0522342</lat>
+        <lng>-118.2436849</lng>
+       </location>
+       <location_type>APPROXIMATE</location_type>
+       <viewport>
+        <southwest>
+         <lat>33.7558884</lat>
+         <lng>-118.7559225</lng>
+        </southwest>
+        <northeast>
+         <lat>34.3475477</lat>
+         <lng>-117.7314473</lng>
+        </northeast>
+       </viewport>
+       <bounds>
+        <southwest>
+         <lat>33.7036918</lat>
+         <lng>-118.6681760</lng>
+        </southwest>
+        <northeast>
+         <lat>34.3373060</lat>
+         <lng>-118.1552890</lng>
+        </northeast>
+       </bounds>
+      </geometry>
+     </result>
+    </GeocodeResponse>    
+  #+END_EXAMPLE
+
+# <<places>>
+  This [[http://code.google.com/apis/maps/documentation/places/][Google places]] query doesn't work for me:
+
+  #+BEGIN_EXAMPLE
+    $ curl 'https://maps.googleapis.com/maps/api/place/search/json?location=-33.8670522,151.1957362&radius=500&types=food&name=harbour&sensor=true&key=<key>
+    {
+       "html_attributions" : [],
+       "results" : [],
+       "status" : "REQUEST_DENIED"
+    }    
+  #+END_EXAMPLE
