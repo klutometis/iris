@@ -950,7 +950,7 @@
                 :filters {"locality" where}
                 :include_count true)))
     
-    (def respond
+    (def consider
       (λ [query]
          (let [{what :what where :where} (parse-query query)
                results (fetch-something what where)
@@ -971,6 +971,21 @@
                          where
                          (:name (random-element results)))))))
     
-    (debug (respond "find corsets in los angeles"))
+    (def answer
+      (λ [response]
+         (let [mp3 (:body (get "http://translate.google.com/translate_tts"
+                               {:query-params {"ie" "UTF-8"
+                                               "tl" "en"
+                                               "q" response
+                                               }
+                                :as :byte-array}))
+               file (create-temporary-mp3)]
+           (with-open [file (FileOutputStream. file)]
+             (.write file mp3))
+           (with-open [player (new Player (input-stream file))]
+             (.play player)))))
+    
+    ;;; Listen, consider, answer.
+    (answer (consider "find corsets in los angeles"))
     
   #+END_SRC
