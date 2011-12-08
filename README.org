@@ -1,2 +1,23 @@
-We'd like to make a [[http://developer.factual.com/display/docs/Factual+Developer+APIs+Version+3][Factually-aware]] Siri-clone using Google's
-clandestine [[http://mikepultz.com/2011/03/accessing-google-speech-api-chrome-11/][speech-to-text]] API.
+* Motivation
+  We'd like to make a [[http://developer.factual.com/display/docs/Factual+Developer+APIs+Version+3][Factually-aware]] Siri-clone using Google's
+  clandestine [[http://mikepultz.com/2011/03/accessing-google-speech-api-chrome-11/][speech-to-text]] (and [[http://techcrunch.com/2009/12/14/the-unofficial-google-text-to-speech-api/][text-to-speech]]) APIs.
+
+* Usage
+  Iris is on [[http://clojars.org/iris][Clojars]]; add the following to your =:dependencies=:
+  #+BEGIN_SRC clojure
+    [iris "1.0.0-SNAPSHOT"]
+  #+END_SRC
+  and use with:
+  #+BEGIN_SRC clojure
+    (:use iris.core)
+  #+END_SRC
+
+* API
+  Iris has three main functions: =listen=, =consider=, =answer= which
+  depend upon the dynamic variables: =*factual-key*= and
+  =*factual-secret*=; Iris can be invoked followingly:
+  #+BEGIN_SRC clojure
+    (binding [*factual-key* factual-key
+              *factual-secret* factual-secret]
+      (answer (consider (listen))))
+  #+END_SRC
