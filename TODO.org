@@ -821,6 +821,31 @@
   extra credit) and where $x$ is a name or one of the [[http://developer.factual.com/display/docs/Places+API+-+Categories][Factual
   categories]]?
 
-  #+BEGIN_SRC clojure
+  Can we use pattern matching instead of regular expressions?
 
+  #+BEGIN_SRC clojure :tangle match.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    
+    (use '[clojure.core.match :only (match)])
+    (use 'debug.core)
+    (use '[clojure.string :only (split)])
+    (use 'funnyplaces.api)
+    
+    (source "v3-key-secret.clj")
+    
+    #_(debug
+       (match ['("find" "hair" "removal" "in" "los" "angeles")]
+              [(["find" & rest] :seq)]
+              (match (partition-by #(= "in" %) rest)
+                     [([what in where] :seq)] what)))
+    
+    (let [query "find hair removal in los angeles"]
+      (match (split query #"\\b")
+             [(["find" & rest] :seq)]
+             (match (partition-by #(= "in" %) rest) 
+                    [([what in where] :seq)] what))
+      (debug (re-matches #"find (.+) in (.+)" query)))
+    
   #+END_SRC
