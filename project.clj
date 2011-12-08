@@ -9,4 +9,5 @@
                  [org.clojure/data.json "0.1.1"]
                  [net.sourceforge.javaflacencoder/java-flac-encoder "0.2.3"]
                  [de.huxhorn.sulky/de.huxhorn.sulky.3rdparty.jlayer "1.0"]]
-  :repositories {"conjars" "http://conjars.org/repo/"})
+  :repositories {"conjars" "http://conjars.org/repo/"}
+  :main iris.core)

@@ -18,7 +18,8 @@
                                 AudioFileFormat$Type)
            (javazoom.jl.player Player)
            (javaFlacEncoder FLAC_FileEncoder
-                            StreamConfiguration)))
+                            StreamConfiguration))
+  (:gen-class))
 
 (def ^:dynamic *factual-key* nil)
 
@@ -204,3 +205,14 @@
                                     *sample-size*))
              (.encode encoder wave flac)
              (parse-response (post-to-google flac))))))))
+
+(def -main
+  (λ [& args]
+     (let [factual-key (clojure.core/get (System/getenv) "FACTUAL_KEY")
+           factual-secret (clojure.core/get (System/getenv) "FACTUAL_SECRET")]
+       (binding [*factual-key* factual-key
+                 *factual-secret* factual-secret]
+         (loop []
+           (answer (consider (listen)))
+           (read-line)
+           (recur))))))
