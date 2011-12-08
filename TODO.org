@@ -1166,5 +1166,5 @@
     (read-line)
   #+END_SRC
 * TODO Ideas
-  crosswalk -> yelp -> rating
-  
+  crosswalk -> yelp -> rating (thanks, Aaron); also: we can [[http://developer.factual.com/display/docs/Core+API+-+Row+Filters][or]] things
+  together.
