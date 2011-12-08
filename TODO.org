@@ -821,6 +821,17 @@
   extra credit) and where $x$ is a name or one of the [[http://developer.factual.com/display/docs/Places+API+-+Categories][Factual
   categories]]?
 
-  #+BEGIN_SRC clojure
-
+  #+BEGIN_SRC clojure :tangle factual.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    
+    (use 'funnyplaces.api)
+    (use 'debug.core)
+    
+    (load-file "key-secret.clj")
+    
+    (factual! *key* *secret*)
+    (debug (fetch :places :filters {"region" "CA"}))
+    
   #+END_SRC
