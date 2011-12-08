@@ -1165,3 +1165,6 @@
     
     (read-line)
   #+END_SRC
+* TODO Ideas
+  crosswalk -> yelp -> rating
+  
