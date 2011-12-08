@@ -649,7 +649,7 @@
                      (println "Stop recording.")
                      (.close target)
                      (.cancel timer)))]
-        (.schedule timer task 10))
+        (.schedule timer task 2000))
       (let [input-stream (new AudioInputStream target)]
         (let [wave (create-temporary-wave)
               flac (create-temporary-flac)]
@@ -666,7 +666,6 @@
                                    *sample-size*))
             (.encode encoder wave flac)
             (debug (parse-response (post-to-google flac)))))))
-    
   #+END_SRC
 
   We can just do something like this, by the way, without worrying
@@ -909,16 +908,29 @@
     (use 'add-classpath.core)
     (add-classpath "lib/*")
     
+    (use 'clojure.data.json)
     (use 'lambda.core)
     (use 'funnyplaces.api)
     (use 'debug.core)
-    (use '[clj-http.client :only (get)])
+    (use 'clj-http.client)
     (use 'clojure.java.io)
     (use 'cadr.core)
     
-    (import '(java.util Random))
-    (import '(java.io File FileOutputStream))
+    (import '(java.util Random
+                        Timer
+                        TimerTask))
+    (import '(java.io File
+                      FileOutputStream))
+    (import '(javax.sound.sampled AudioFormat
+                                  AudioSystem
+                                  AudioInputStream
+                                  AudioFileFormat
+                                  AudioFileFormat$Type))
+    
     (import '(javazoom.jl.player Player))
+    
+    (import '(javaFlacEncoder FLAC_FileEncoder
+                              StreamConfiguration))
     
     (load-file "key-secret.clj")
     
@@ -934,6 +946,12 @@
         
     (def create-temporary-mp3
       (λ [] (create-temporary-file ".mp3")))
+    
+    (def create-temporary-wave
+      (λ [] (create-temporary-file ".wav")))
+    
+    (def create-temporary-flac
+      (λ [] (create-temporary-file ".flac")))
     
     (def parse-query
       (λ [query]
@@ -952,6 +970,7 @@
     
     (def consider
       (λ [query]
+         (println (format "You: %s" query))
          (let [{what :what where :where} (parse-query query)
                results (fetch-something what where)
                {total :total_row_count
@@ -973,7 +992,8 @@
     
     (def answer
       (λ [response]
-         (let [mp3 (:body (get "http://translate.google.com/translate_tts"
+         (println (format "Me: %s" response))
+         (let [mp3 (:body (clj-http.client/get "http://translate.google.com/translate_tts"
                                {:query-params {"ie" "UTF-8"
                                                "tl" "en"
                                                "q" response
@@ -985,7 +1005,97 @@
            (with-open [player (new Player (input-stream file))]
              (.play player)))))
     
+    (def ^:dynamic *input-index* 
+      "Default index of the recording device; NB: this is a hack."
+      1)
+    
+    (def ^:dynamic *sample-rate* 8000)
+    
+    (def ^:dynamic *sample-size* 16)
+    
+    (def ^:dynamic *channels* 1)
+    
+    (def ^:dynamic *signed* true)
+    
+    (def ^:dynamic *big-endian* false)
+    
+    (def ^:dynamic *format*
+      (new AudioFormat
+           *sample-rate*
+           *sample-size*
+           *channels*
+           *signed*
+           *big-endian*))
+    
+    (def sort-hypotheses
+      (λ [hypotheses]
+         (sort-by (λ [hypothesis]
+                     (let [{utterance :utterance confidence :confidence}
+                           hypothesis]
+                       confidence))
+                  >
+                  hypotheses)))
+    
+    (def parse-response
+      (λ [response]
+         (let [{status :status
+                id :id
+                hypotheses :hypotheses}
+               (read-json response)
+               {utterance :utterance
+                confidence :confidence}
+               (car (sort-hypotheses hypotheses))]
+           utterance)))
+    
+    (def ^:dynamic *google-url*
+      "https://www.google.com/speech-api/v1/recognize?xjerr=1&client=chromium&lang=en-US")
+    
+    (def post-to-google
+      (λ [flac]
+         (:body
+          (clj-http.client/post
+           *google-url*
+           {:multipart [["Content" flac]]
+            :headers {"Content-type"
+                      (format "audio/x-flac; rate=%s" *sample-rate*)}}))))
+    
+    (def listen
+      (λ []
+         (let [mixer-info (clojure.core/get (AudioSystem/getMixerInfo) *input-index*)
+               target (AudioSystem/getTargetDataLine *format* mixer-info)]
+           ;; `with-open'?
+           (.open target *format*)
+           (println "Listening.")
+           (.start target)
+           (let [timer (new Timer)
+                 task (proxy [TimerTask] []
+                        (run []
+                          (.flush target)
+                          (.stop target)
+                          (.close target)
+                          (println "Considering.")
+                          (.cancel timer)))]
+             (.schedule timer task 10000))
+           (let [input-stream (new AudioInputStream target)]
+             (let [wave (create-temporary-wave)
+                   flac (create-temporary-flac)]
+               (AudioSystem/write input-stream
+                                  AudioFileFormat$Type/WAVE
+                                  wave)
+               (let [encoder (new FLAC_FileEncoder)]
+                 (.setStreamConfig encoder
+                                   (new StreamConfiguration
+                                        *channels*
+                                        StreamConfiguration/DEFAULT_MIN_BLOCK_SIZE
+                                        StreamConfiguration/DEFAULT_MAX_BLOCK_SIZE
+                                        *sample-rate*
+                                        *sample-size*))
+                 (.encode encoder wave flac)
+                 (parse-response (post-to-google flac))))))))
+    
     ;;; Listen, consider, answer.
-    (answer (consider "find corsets in los angeles"))
+    ;; (answer (consider "find corsets in los angeles"))
+    
+    (answer (consider (listen)))
     
   #+END_SRC
