@@ -810,6 +810,10 @@
 
   (Had to enable it under the Google API console.)
 
+  #+BEGIN_SRC sh
+    curl 'http://api.ipinfodb.com/v3/ip-city/?key=<api-key>'
+  #+END_SRC
+
 * TODO Grammar
   We could go [[http://nlp.stanford.edu/software/lex-parser.shtml][Stanford]] on this; but why not start with regular
   expressions? Something to the effect of: "find $x$ near $y$;" where
@@ -832,6 +836,104 @@
     (load-file "key-secret.clj")
     
     (factual! *key* *secret*)
-    (debug (fetch :places :filters {"region" "CA"}))
+    
+    ;;; We've remove URL encoding from these examples for clarity, but
+    ;;; remember to URL encode the entirety of your JSON string before
+    ;;; calling.
+    (let [query "find hair removal in los angeles"]
+      (debug #_(fetch :places :limit 1 :filters {"locality" "los angeles"})
+             #_(resolve {"name" "ino", "latitude" 40.73, "longitude" -74.01})
+             (let [[query what where] (re-matches #"find (.+) in (.+)" query)]
+               (debug what where (format "%s,%s" what where))
+               (fetch :places :q (format "%s,%s" what where)))))
+    
+  #+END_SRC
+* TODO Speech-to-text
+  #+BEGIN_SRC sh
+    curl -A Mozilla "http://translate.google.com/translate_tts?q=i'm+relatively+indifferent+to+techcrunch"
+    mplayer "http://translate.google.com/translate_tts?ie=UTF-8&tl=de&q=einst+ging+ich+zum+raggies"
+  #+END_SRC
+
+  [[http://espeak.sourceforge.net/][See also.]]
+
+  #+BEGIN_SRC clojure :tangle synthesize.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    
+    (use 'lambda.core)
+    (use 'debug.core)
+    (use '[clj-http.client :only (get)])
+    (use 'clojure.java.io)
+    
+    (import '(java.io File
+                      FileOutputStream))
+    (import '(javazoom.jl.player Player))
+    
+    (def ^:dynamic *prefix* "iris")
+        
+    (def ^:dynamic *prefix* "iris")
+    
+    (def create-temporary-file
+      (λ [suffix] (File/createTempFile *prefix* suffix)))
+        
+    (def create-temporary-mp3
+      (λ [] (create-temporary-file ".mp3")))
+    
+    (debug (let [mp3 (:body (get "http://translate.google.com/translate_tts"
+                                 {:query-params {"ie" "UTF-8"
+                                                 "tl" "de"
+                                                 "q" "einst ging ich zum raggies haus" 
+                                                 }
+                                  :as :byte-array}))
+                 file (create-temporary-mp3)]
+             (with-open [file (FileOutputStream. file)]
+               (.write file mp3))
+             (with-open [player (new Player (input-stream file))]
+               (.play player))))
+    
+  #+END_SRC
+
+  #+BEGIN_SRC clojure :tangle play.clj :shebang #!/usr/bin/env clj
+    (use 'clojure.java.io)
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    
+    (import '(javazoom.jl.player Player))
+    
+    (let [mp3 (input-stream "play.mp3")
+          player (new Player mp3)]
+      (.play player)
+      (.close player))
+    
+  #+END_SRC
+
+  #+BEGIN_SRC clojure :tangle parse-and-play.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    
+    (use 'lambda.core)
+    (use 'funnyplaces.api)
+    (use 'debug.core)
+    
+    (load-file "key-secret.clj")
+    
+    (def parse-query
+      (λ [query]
+         (let [[query what where]
+               (re-matches #"find (.+) in (.+)" query)]
+           {:what what
+            :where where})))
+    
+    (def fetch-something
+      (λ [{what :what
+           where :where}]
+         #_(fetch :places :q (format "%s,%s" what where) :include_count true)
+         (fetch :places :q what :filters {"locality" where} :include_count true)))
+    
+    (factual! *key* *secret*)
+    (let [query "find corsets in los angeles"
+          results (fetch-something (parse-query query))]
+      (debug (meta results)
+             results))
     
   #+END_SRC
