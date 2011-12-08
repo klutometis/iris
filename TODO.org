@@ -1115,12 +1115,25 @@
                  (.encode encoder wave flac)
                  (parse-response (post-to-google flac))))))))
     
-    ;;; Listen, consider, answer.
-    ;; (answer (consider "find corsets in los angeles"))
+    (sun.misc.Signal/handle
+     (sun.misc.Signal. "HUP")
+     (proxy [sun.misc.SignalHandler] []
+       (handle [signal]
+         (answer (consider (listen))))))
     
     (loop []
       (answer (consider (listen)))
       (read-line)
       (recur))
     
+  #+END_SRC
+* TODO Catch signal
+  #+BEGIN_SRC clojure :tangle signal.clj :shebang #!/usr/bin/env clj
+    (sun.misc.Signal/handle
+     (sun.misc.Signal. "HUP")
+     (proxy [sun.misc.SignalHandler] []
+       (handle [signal]
+         (println (str "-- caught signal " signal)))))
+    
+    (read-line)
   #+END_SRC
