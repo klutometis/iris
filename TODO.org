@@ -871,8 +871,6 @@
     
     (def ^:dynamic *prefix* "iris")
         
-    (def ^:dynamic *prefix* "iris")
-    
     (def create-temporary-file
       (λ [suffix] (File/createTempFile *prefix* suffix)))
         
@@ -882,7 +880,7 @@
     (debug (let [mp3 (:body (get "http://translate.google.com/translate_tts"
                                  {:query-params {"ie" "UTF-8"
                                                  "tl" "de"
-                                                 "q" "einst ging ich zum raggies haus" 
+                                                 "q" "einst ging ich zum raggies haus"
                                                  }
                                   :as :byte-array}))
                  file (create-temporary-mp3)]
@@ -914,8 +912,28 @@
     (use 'lambda.core)
     (use 'funnyplaces.api)
     (use 'debug.core)
+    (use '[clj-http.client :only (get)])
+    (use 'clojure.java.io)
+    (use 'cadr.core)
+    
+    (import '(java.util Random))
+    (import '(java.io File FileOutputStream))
+    (import '(javazoom.jl.player Player))
     
     (load-file "key-secret.clj")
+    
+    (let [random (new Random (System/currentTimeMillis))]
+      (def random-element
+        (λ [list]
+           (nth list (.nextInt random (count list))))))
+    
+    (def ^:dynamic *prefix* "iris")
+             
+    (def create-temporary-file
+      (λ [suffix] (File/createTempFile *prefix* suffix)))
+        
+    (def create-temporary-mp3
+      (λ [] (create-temporary-file ".mp3")))
     
     (def parse-query
       (λ [query]
@@ -925,15 +943,34 @@
             :where where})))
     
     (def fetch-something
-      (λ [{what :what
-           where :where}]
-         #_(fetch :places :q (format "%s,%s" what where) :include_count true)
-         (fetch :places :q what :filters {"locality" where} :include_count true)))
+      (λ [what where]
+         (factual! *key* *secret*)
+         (fetch :places
+                :q what
+                :filters {"locality" where}
+                :include_count true)))
     
-    (factual! *key* *secret*)
-    (let [query "find corsets in los angeles"
-          results (fetch-something (parse-query query))]
-      (debug (meta results)
-             results))
+    (def respond
+      (λ [query]
+         (let [{what :what where :where} (parse-query query)
+               results (fetch-something what where)
+               {total :total_row_count
+                included :included_rows}
+               (:response (meta results))]
+           (cond (empty? results)
+                 (format "I couldn't find any places for '%s' in %s." what where)
+                 (= 1 total)
+                 (format "The only place for '%s' in %s appears to be %s."
+                         what
+                         where
+                         (:name (car results)))
+                 :else
+                 (format "Of the %s or so places for '%s' in %s, you might like %s."
+                         total
+                         what
+                         where
+                         (:name (random-element results)))))))
+    
+    (debug (respond "find corsets in los angeles"))
     
   #+END_SRC
