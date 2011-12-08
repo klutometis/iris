@@ -1,5 +1,5 @@
 (defproject iris "1.0.0-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "A Factually-aware Siri-clone"
   :dependencies [[org.clojure/clojure "1.3.0"]
                  [funnyplaces "1.2-beta"]
                  [cadr "1.0.1-SNAPSHOT"]
