@@ -14,8 +14,8 @@
 
 * API
   Iris has three main functions: =listen=, =consider=, =answer= which
-  depend upon the dynamic variables =*factual-key*= and
-  =*factual-secret*=; and can be invoked followingly:
+  depend upon the dynamic variables: =*factual-key*= and
+  =*factual-secret*=; Iris can be invoked followingly:
   #+BEGIN_SRC clojure
     (binding [*factual-key* factual-key
               *factual-secret* factual-secret]
