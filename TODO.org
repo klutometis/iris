@@ -1168,3 +1168,57 @@
 * TODO Ideas
   crosswalk -> yelp -> rating (thanks, Aaron); also: we can [[http://developer.factual.com/display/docs/Core+API+-+Row+Filters][or]] things
   together.
+* TODO Need a newline-newline hack (record in a thread?)
+  #+BEGIN_SRC clojure :tangle threads.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (use 'lambda.core)
+    (use 'debug.core)
+    (use 'clojure.java.io)
+    
+    (import '(java.util Random
+                        Timer
+                        TimerTask))
+    (import '(java.io File
+                      FileOutputStream))
+    
+    (import '(javax.sound.sampled AudioFormat
+                                  AudioSystem
+                                  AudioInputStream
+                                  AudioFileFormat
+                                  AudioFileFormat$Type))
+    
+    ;; (.start (Thread. (λ [] (Thread/sleep 1000) (println "harro freunds!"))))
+    
+    (def format
+      (new AudioFormat
+           8000
+           16
+           1
+           true
+           false))
+    
+    (let [mixer-info (clojure.core/get (AudioSystem/getMixerInfo) 1)
+          target (AudioSystem/getTargetDataLine format mixer-info)]
+      ;; `with-open'?
+      (.open target format)
+      (println "I'm listening.")
+      (.start target)
+      (let [timer (new Timer)
+            task (proxy [TimerTask] []
+                   (run []
+                     (.flush target)
+                     (.stop target)
+                     (.close target)
+                     (println "I'm considering.")
+                     (.cancel timer)))]
+        (.schedule timer task 1000))
+      (let [input-stream (new AudioInputStream target)]
+        (let [wave (file "harro.wav")]
+          (AudioSystem/write input-stream
+                             AudioFileFormat$Type/WAVE
+                             wave))))
+    
+  #+END_SRC

@@ -4,10 +4,11 @@
                  [funnyplaces "1.2-beta"]
                  [cadr "1.0.1-SNAPSHOT"]
                  [lambda "1.0.1-SNAPSHOT"]
-                 [debug "1.0.0-SNAPSHOT"]
                  [clj-http "0.2.5"]
                  [org.clojure/data.json "0.1.1"]
                  [net.sourceforge.javaflacencoder/java-flac-encoder "0.2.3"]
                  [de.huxhorn.sulky/de.huxhorn.sulky.3rdparty.jlayer "1.0"]]
+  :dev-dependencies [[debug "1.0.0-SNAPSHOT"]
+                     [add-classpath "1.0.2-SNAPSHOT"]]
   :repositories {"conjars" "http://conjars.org/repo/"}
   :main iris.core)
