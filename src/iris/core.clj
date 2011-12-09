@@ -180,15 +180,13 @@
        (.open target *format*)
        (println "I'm listening.")
        (.start target)
-       (let [timer (new Timer)
-             task (proxy [TimerTask] []
-                    (run []
-                      (.flush target)
-                      (.stop target)
-                      (.close target)
-                      (println "I'm considering.")
-                      (.cancel timer)))]
-         (.schedule timer task 10000))
+       (.start (Thread.
+                (λ []
+                   (read-line)
+                   (.flush target)
+                   (.stop target)
+                   (.close target)
+                   (println "I'm considering."))))
        (let [input-stream (new AudioInputStream target)]
          (let [wave (create-temporary-wave)
                flac (create-temporary-flac)]
