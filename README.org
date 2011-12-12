@@ -4,9 +4,7 @@
   we implemented the trivial grammar "find $x$ in $y$" and "find $x$
   near me."
 
-  Commands are spoken and results are read back. It would be nice,
-  however, to implement a real natural-language interface to Factual's
-  data; and integrate it with our demo.
+  Commands are spoken and results are read back.
 
 * Usage
   Iris is on [[http://clojars.org/iris][Clojars]]; add the following to your =:dependencies=:
@@ -27,3 +25,15 @@
               *factual-secret* factual-secret]
       (answer (consider (listen))))
   #+END_SRC
+
+* Command-line interface
+  Set the environment variables =FACTUAL_KEY=, =FACTUAL_SECRET=
+  (=GEOBYTES_EMAIL= and =GEOBYTES_PASSWORD= are only required to
+  implement "near me") and issue =lein run=:
+  #+BEGIN_SRC sh
+    FACTUAL_KEY=<factual-key> FACTUAL_SECRET=<factual-secret> lein run
+  #+END_SRC
+
+* Future work
+  It would be nice to implement a real natural-language interface to
+  Factual's data; and integrate it with the Global Place demo.
