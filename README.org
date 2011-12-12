@@ -1,6 +1,12 @@
 * Motivation
   We'd like to make a [[http://developer.factual.com/display/docs/Factual+Developer+APIs+Version+3][Factually-aware]] Siri-clone using Google's
-  clandestine [[http://mikepultz.com/2011/03/accessing-google-speech-api-chrome-11/][speech-to-text]] (and [[http://techcrunch.com/2009/12/14/the-unofficial-google-text-to-speech-api/][text-to-speech]]) APIs.
+  clandestine [[http://mikepultz.com/2011/03/accessing-google-speech-api-chrome-11/][speech-to-text]] (and [[http://techcrunch.com/2009/12/14/the-unofficial-google-text-to-speech-api/][text-to-speech]]) APIs; to that end,
+  we implemented the trivial grammar "find $x$ in $y$" and "find $x$
+  near me."
+
+  Commands are spoken and results are read back. It would be nice,
+  however, to implement a real natural-language interface to Factual's
+  data; and integrate it with our demo.
 
 * Usage
   Iris is on [[http://clojars.org/iris][Clojars]]; add the following to your =:dependencies=:
