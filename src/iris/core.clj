@@ -54,20 +54,57 @@
        {:results results
         :quotable quotable})))
 
+(def ^:dynamic *geobytes-email* nil)
+(def ^:dynamic *geobytes-password* nil)
+
+(def find-me
+  (λ []
+     (let [geolocation
+           (:geobytes
+            (read-json
+             (:body
+              (get "http://www.geobytes.com/IpLocator.htm"
+                   {:query-params {"GetLocation" true
+                                   "template" "json.txt"
+                                   "pt_email" *geobytes-email*
+                                   "pt_password" *geobytes-password*}}))))]
+       {:latitude (:latitude geolocation)
+        :longitude (:longitude geolocation)
+        :city (:city geolocation)})))
+
 (def locality-parser
   (λ [query]
-     (let [[query what where]
+     (let [parse-near-me
+           (re-matches #"find (.+) near me" query)
+           parse-in
            (re-matches #"find (.+) in (.+)" query)]
-       (if (and what where)
-         (do (factual! *factual-key* *factual-secret*)
-             (let [results (fetch :places
-                                  :q what
-                                  :filters {"locality" where}
-                                  :include_count true)
-                   quotable (format "\"%s\" in %s" what where)]
+       (factual! *factual-key* *factual-secret*)
+       (cond parse-near-me
+             (let [[query what] parse-near-me
+                   {latitude :latitude
+                    longitude :longitude
+                    city :city} (find-me)
+                    results
+                    (fetch :places
+                           :q what
+                           :geo {:$circle {:$center [latitude, longitude] :$meters 5000}}
+                           :include_count true)]
+               ;; We could just pass the city to the normal locality
+               ;; parser.
                {:results results
-                :quotable quotable}))
-         false))))
+                :quotable (format "\"%s\" near you" what)})
+             parse-in
+             (let [[query what where] parse-in]
+               (let [results (fetch :places
+                                    :q what
+                                    ;; Let's `or'-this with address,
+                                    ;; region, country.
+                                    :filters {"locality" where}
+                                    :include_count true)
+                     quotable (format "\"%s\" in %s" what where)]
+                 {:results results
+                  :quotable quotable}))
+             :else false))))
 
 (def parsers (list locality-parser
                    default-parser))
@@ -207,10 +244,14 @@
 (def -main
   (λ [& args]
      (let [factual-key (clojure.core/get (System/getenv) "FACTUAL_KEY")
-           factual-secret (clojure.core/get (System/getenv) "FACTUAL_SECRET")]
+           factual-secret (clojure.core/get (System/getenv) "FACTUAL_SECRET")
+           geobytes-email (clojure.core/get (System/getenv) "GEOBYTES_EMAIL")
+           geobytes-password (clojure.core/get (System/getenv) "GEOBYTES_PASSWORD")]
        (binding [*factual-key* factual-key
-                 *factual-secret* factual-secret]
+                 *factual-secret* factual-secret
+                 *geobytes-email* geobytes-email
+                 *geobytes-password* geobytes-password]
          (loop []
-           (answer (consider (listen)))
            (read-line)
+           (answer (consider (listen)))
            (recur))))))

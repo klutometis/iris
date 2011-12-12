@@ -727,6 +727,38 @@
     
   #+END_EXAMPLE
 
+  Even better:
+
+  #+BEGIN_EXAMPLE
+    $ curl 'http://www.geobytes.com/IpLocator.htm?GetLocation&template=LonLatCity.txt'
+    -118.2840,34.0452,Los Angeles
+  #+END_EXAMPLE
+
+  Not bad, though:
+
+  #+BEGIN_EXAMPLE
+    $ curl 'http://www.geobytes.com/IpLocator.htm?GetLocation&template=json.txt'
+    {"geobytes":{"countryid":254,
+    "country":"United States",
+    "fips":"US",
+    "iso2":"US",
+    "iso3":"USA",
+    "ison":840,
+    "internet":"US",
+    "regionid":126,
+    "region":"California",
+    "code":"CA",
+    "cityid":7275,
+    "city":"Los Angeles",
+    "latitude":34.0452,
+    "longitude":-118.2840,
+    "timezone":"-08:00",
+    "certainty":97,
+    "locationcode":"USCALANG",
+    "ipaddress":"76.79.81.162"
+    }}
+  #+END_EXAMPLE
+
   We should be able to do a city -> lat/long without all the OAuth
   shit via [[http://code.google.com/apis/maps/documentation/geocoding/index.html][Google]] (just cities, though, not establishments; see
   [[places]] below):
@@ -1221,3 +1253,71 @@
                              wave))))
     
   #+END_SRC
+* TODO Implement "near me"
+  #+BEGIN_SRC clojure :tangle near-me.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    (use 'debug.core)
+    (use 'funnyplaces.api)
+    (use 'lambda.core)
+    (use 'clj-http.client)
+    (use 'clojure.data.json)
+    
+    (def ^:dynamic *geobytes-email* nil)
+    (def ^:dynamic *geobytes-password* nil)
+    
+    (load-file "factual-secret.clj")
+    (load-file "geobytes-secret.clj")
+    
+    (def find-me
+      (λ []
+         (let [geolocation
+               (:geobytes
+                (read-json
+                 (:body
+                  (get "http://www.geobytes.com/IpLocator.htm"
+                       {:query-params {"GetLocation" true
+                                       "template" "json.txt"
+                                       "pt_email" *geobytes-email*
+                                       "pt_password" *geobytes-password*}}))))]
+           {:latitude (:latitude geolocation)
+            :longitude (:longitude geolocation)
+            :city (:city geolocation)})))
+    
+    (def locality-parser
+      (λ [query]
+         (let [parse-near-me
+               (re-matches #"find (.+) near me" query)
+               parse-in
+               (re-matches #"find (.+) in (.+)" query)]
+           (factual! *factual-key* *factual-secret*)
+           (cond parse-near-me
+                 (let [[query what] parse-near-me
+                       {latitude :latitude
+                        longitude :longitude
+                        city :city} (find-me)]
+                   ;; We could just pass the city to the normal locality
+                   ;; parser.
+                   (fetch :places
+                          :q what
+                          :geo {:$circle {:$center [latitude, longitude] :$meters 5000}}
+                          :include_count true))
+                 parse-in
+                 (let [[query what where] parse-in]
+                   (let [results (fetch :places
+                                        :q what
+                                        ;; Let's `or'-this with address,
+                                        ;; region, country.
+                                        :filters {"locality" where}
+                                        :include_count true)
+                         quotable (format "\"%s\" in %s" what where)]
+                     {:results results
+                      :quotable quotable}))
+                 :else false))))
+    
+    (debug (locality-parser "find lingerie near me")
+           (locality-parser "find lingerie in los angeles"))
+    
+  #+END_SRC
+* TODO =new-line= before listen; to control flow a little better.
