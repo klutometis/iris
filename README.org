@@ -4,7 +4,9 @@
   we implemented the trivial grammar "find $x$ in $y$" and "find $x$
   near me."
 
-  Commands are spoken and results are read back.
+  Commands are spoken and results are read back. It would be nice,
+  however, to implement a real natural-language interface to Factual's
+  data; and integrate it with our demo.
 
 * Usage
   Iris is on [[http://clojars.org/iris][Clojars]]; add the following to your =:dependencies=:
@@ -25,7 +27,3 @@
               *factual-secret* factual-secret]
       (answer (consider (listen))))
   #+END_SRC
-
-* TODO
-  It would be nice to implement a real natural-language interface to
-  Factual's data; and integrate it with our demo.
