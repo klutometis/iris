@@ -1,3 +1,17 @@
+* TODO Template-based parsing
+  - [[http://www.kaeppel-soft.de/forschung/Template-1.004.pdf][Fault-tolerant template-based parsing]]; uses Smith-Watermann.
+  - [[http://cran.r-project.org/web/packages/vwr/vwr.pdf][Levenshtein]], etc.
+     
+  At some point, we have to get down to the dirty business of applying
+  templates.
+
+  #+BEGIN_EXAMPLE
+    > levenshtein.distance("find thing in place", c('find movies around santa monica', 'find movies in santa monica'))
+    find movies around santa monica     find movies in santa monica 
+                                 20                              15     
+  #+END_EXAMPLE
+
+  Can we word-net this somehow?
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
