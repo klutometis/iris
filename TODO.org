@@ -11,7 +11,7 @@
                                  20                              15     
   #+END_EXAMPLE
 
-  Can we word-net this somehow?
+  Can we word-net this somehow? [[http://projects.csail.mit.edu/jwi/][Java driver]].
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
