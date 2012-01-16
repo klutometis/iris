@@ -12,6 +12,201 @@
   #+END_EXAMPLE
 
   Can we word-net this somehow? [[http://projects.csail.mit.edu/jwi/][Java driver]].
+
+  [[http://dakrone.github.com/clojure-opennlp/][What David is using.]]
+
+  Worst case 2^n complexity: scan all n-grams, starting from large to
+  small, for names, places, categories, attributes; replace them with
+  <name>, <place>, <category>, <attribute>; do a Levenshtein against
+  templates of the form "<name> in <place> with <attribute>."
+
+  We could even have a regular expression compiler in the grammar:
+  "(<name> | <category>) (in <place>)? (with <attribute>)?" gets
+  compiled to:
+
+  - "<name> in <place> with <attribute>"
+  - "<name> in <place>"
+  - "<name> with <attribute>"
+  - "<name>"
+  - "<category> in <place> with <attribute>"
+  - "<category> in <place>"
+  - "<category> with <attribute>"
+  - "<category>"
+    
+  Use these templates to take an initial crack at the thing; within
+  which, we have 2^n complexity of testing n-grams against names,
+  etc. Categories and attributes are cheaper (since they're
+  fixed). Does Factual do raw place? Place might be: address,
+  locality, region.
+
+  =<attributes>= could also map to: =<attribute> ((or|and)
+  <attribute>)*=; (left recursive: =<attributes> -> <attributes> or
+  <attribute> | <attributes> and <attribute>=?)
+
+  Given the grammar, how do we split the string? Map non-terminals to
+  e.g. =.*= or =.?=; in the future, maybe we can operate on lists of
+  tokens and generate all splits for combinations of greedy and
+  non-greedy.
+
+  - =(place "at" address "in" locality "with" attribute)=
+    
+  #+BEGIN_SRC clojure
+    (use 'clojure.test)
+    
+    (is (= (re-seq #"(.*) in (.*) with (.*)"
+                   "cafe in santa monica with free wifi")
+           '(["cafe in santa monica with free wifi"
+              "cafe"
+              "santa monica"
+              "free wifi"])))
+    
+  #+END_SRC
+
+  So, we're still back to regular expressions, how ever you want to
+  dice it.
+
+  #+BEGIN_SRC clojure :tangle compile-to-regex.clj :shebang #!/usr/bin/env clj
+    (use 'clojure.string)
+    
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (use 'lambda.core)
+    (use 'debug.core)
+    (use 'cadr.core)
+    
+    (def make-rules hash-map)
+    
+    (def add-rule assoc)
+    
+    (defλ template->regex [template]
+      (re-pattern
+       (apply str (map (λ [token] (if (string? token) token "(.*)")) template))))
+    
+    ;;; This only matches the whole thing; we can construct partial
+    ;;; matches if we built it ourself, can't we? Are partial matches
+    ;;; desirable?
+    ;;;
+    ;;; If we don't do partial mapping, we can simulate it with a
+    ;;; regular-expression--like syntax in the productions; i.e. (name (?
+    ;;; "in" locality) (? "with" attribute)), which would reduce to
+    ;;; e.g. five deterministic rules.
+    ;;;
+    ;;; Some sort of scoring system where the most specific template wins?
+    ;;;
+    ;;; First thing the rules are going to do is break it up, aren't they,
+    ;;; since we're doing n-grams? Maybe there is an argument for doing it
+    ;;; ourselves.
+    (defλ match [template query]
+      (let [matches (re-seq (template->regex template) query)]))
+    
+    ;;; We're going to produce a tree whose leaves we can plumb to walk
+    ;;; the templates.
+    (defλ generate [generators non-terminals sentence]
+      (letfn [(generate [sentence]
+                (if (list? sentence)
+                  (if (empty? sentence)
+                    nil
+                    (let [generator (get generators (car sentence))]
+                      (if generator
+                        (generate (generator (cdr sentence)))
+                        (map generate sentence))))
+                  (if (symbol? sentence)
+                    (let [non-terminal (get non-terminals sentence)]
+                      (if non-terminal
+                        (generate non-terminal)
+                        sentence))
+                    sentence)))]
+        (generate sentence)))
+    
+    ;;; thing -> restaurant.name | place.name | category; restaurant.name
+    ;;; and place.name will have to set the :restaurants-us and :place
+    ;;; datasets. Will :place bail out when e.g. :meal_dinner is set? Yes,
+    ;;; this barfs: (fetch :places :limit 3 :filters {:meal_dinner {:$eq
+    ;;; true}}); this, however, is successful: (fetch :restaurants-us
+    ;;; :limit 3 :filters {:meal_dinner {:$eq true}}).
+    (let [;; Terminals
+          terminals (-> (make-rules)
+                        ;; {"name":{"$search":"Charles"}}
+                        (add-rule 'name
+                                  (λ [query]
+                                    (λ [name]
+                                      `(:name ~name ~@query))))
+                        (add-rule 'locality
+                                  (λ [query]
+                                    (λ [locality]
+                                      `(:locality ~locality ~@query))))
+                        (add-rule 'attribute
+                                  (λ [query]
+                                    (λ [attribute]
+                                      ;; Not realistic
+                                      `(:filters {~attribute {:$eq true}} ~@query))))
+                        ;; Might be able to do this with e.g. (| restaurant
+                        ;; cuisine); therefore, everything should be a rule,
+                        ;; even `|', `?'? Or should we special-case them?
+                        ;;
+                        ;; If everything is lambda, we have to distinguish
+                        ;; between production rules (which produce other
+                        ;; rules) from terminals that modify queries.
+                        ;;
+                        ;; Can we have production-rules that get run first;
+                        ;; and query-rules to which they get mapped?
+                        ;;
+                        ;; The end of production-rules should be a list
+                        ;; of query-rule terminals and strings. Strings
+                        ;; are a special case, though, and could
+                        ;; just-as-well be a query-rule? Nah.
+                        ;;
+                        ;; The production rules get fed back into the
+                        ;; reduce until they, too, reduce to simples.
+                        )
+          ;; Templates?
+          non-terminals (-> (make-rules)
+                            (add-rule 'restaurant-or-cuisine '(| restaurant cuisine))
+                            (add-rule 'in-locality? '(? "in" locality))
+                            (add-rule 'with-attributes? '(? "with" attributes)))
+          generators (-> (make-rules)
+                         (add-rule '| (λ [rest] rest))
+                         (add-rule '? (λ [rest]
+                                        (cons (into (vector) rest)
+                                              [nil]))))]
+      (let [template '(restaurant-or-cuisine
+                       in-locality?
+                       with-attributes?
+                       (? "in" (? "out")))
+            query "cafes in santa monica with wifi"]
+        ;; At some point we have to run the reduction on the template,
+        ;; which may expand into multiple templates.
+        (debug (generate generators non-terminals template))))
+    
+  #+END_SRC
+
+  Non-terminals are symbols; terminals are strings and lambdas. We can
+  run a reduction as a DFS, right? What about this whole LALR business
+  and left-recursion -> right-recursion?
+
+  We have: productions, non-terminals, terminals. During expansion: if
+  we encounter a list, we try to apply a production (non-terminal
+  lambda); if we encounter a symbol, we try to apply a
+  non-terminal. Should templates have names? If so, templates can
+  refer to templates; and the template is our symbolic
+  non-terminal. Should we do the trick where we can eval the damn
+  thing as an e.g. macro?
+
+  #+BEGIN_SRC org
+    ,- generate generators non-terminals sentence
+    ,  - if list? sentence
+    ,    - if generator
+    ,      - generate generators non-terminals (generator (cdr sentence))
+    ,      - map generate sentence
+    ,    - if non-terminal
+    ,      - generate generators non-terminals non-terminal
+    ,      - sentence
+  #+END_SRC
+
+  I need to generate the Cartesian product, effectively, of every
+  form; is it possible to descend to the leaves?
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
