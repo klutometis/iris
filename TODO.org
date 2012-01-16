@@ -1,5 +1,5 @@
 * TODO fastCGI and Clojure over JNA?
-  [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation.
+  [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
 * TODO Template-based parsing
   - [[http://www.kaeppel-soft.de/forschung/Template-1.004.pdf][Fault-tolerant template-based parsing]]; uses Smith-Watermann.
   - [[http://cran.r-project.org/web/packages/vwr/vwr.pdf][Levenshtein]], etc.
