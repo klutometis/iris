@@ -198,8 +198,7 @@
                                         (cons rest
                                               '(())))))]
       (let [meta-templates
-            '((restaurant-or-cuisine in-locality? with-attributes?)
-              ("fuckj" "this" "shit"))
+            '((restaurant-or-cuisine in-locality? with-attributes?))
             templates (apply concat
                              (map (λ [meta-template]
                                     (generate-templates
@@ -207,6 +206,7 @@
                                      non-terminals
                                      meta-template))
                                   meta-templates))]
+        (debug templates)
         ;; At some point we have to run the reduction on the template,
         ;; which may expand into multiple templates.
         ;;
