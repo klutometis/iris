@@ -105,12 +105,16 @@
     ;;; the templates.
     (defλ generate [generators non-terminals sentence]
       (letfn [(generate [sentence]
-                (if (list? sentence)
+                ;; (debug sentence)
+                (if (seq? sentence)
                   (if (empty? sentence)
                     nil
                     (let [generator (get generators (car sentence))]
                       (if generator
-                        (generate (generator (cdr sentence)))
+                        (let [generated (generator (cdr sentence))]
+                          (if (seq? generated)
+                            (map generate generated)
+                            generated))
                         (map generate sentence))))
                   (if (symbol? sentence)
                     (let [non-terminal (get non-terminals sentence)]
@@ -170,11 +174,13 @@
                          (add-rule '| (λ [rest] rest))
                          (add-rule '? (λ [rest]
                                         (cons (into (vector) rest)
-                                              [nil]))))]
+                                              [nil])))
+                         #_(add-rule '? (λ [rest]
+                                        (cons rest
+                                              '(())))))]
       (let [template '(restaurant-or-cuisine
                        in-locality?
-                       with-attributes?
-                       (? "in" (? "out")))
+                       with-attributes?)
             query "cafes in santa monica with wifi"]
         ;; At some point we have to run the reduction on the template,
         ;; which may expand into multiple templates.
@@ -207,6 +213,10 @@
 
   I need to generate the Cartesian product, effectively, of every
   form; is it possible to descend to the leaves?
+
+  I can't figure out how to distinguish between lists-as-atoms and
+  lists-as-branches; I'm going to prematurely suspend the recursion,
+  therefore, by returning vectors for atomic lists. Goddammit.
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
