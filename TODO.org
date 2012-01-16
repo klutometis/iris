@@ -85,7 +85,11 @@
     
     (defλ template->regex [template]
       (re-pattern
-       (apply str (map (λ [token] (if (string? token) token "(.*)")) template))))
+       (apply str
+              (interpose " +"
+                         (map (λ [token]
+                                (if (string? token) token "(.+)"))
+                              template)))))
     
     ;;; This only matches the whole thing; we can construct partial
     ;;; matches if we built it ourself, can't we? Are partial matches
@@ -102,7 +106,12 @@
     ;;; since we're doing n-grams? Maybe there is an argument for doing it
     ;;; ourselves.
     (defλ match [template query]
-      (let [matches (re-seq (template->regex template) query)]))
+      (let [matches (cdar (re-seq (template->regex template) query))
+            terminals (filter symbol? template)]
+        (if (= (count matches)
+               (count terminals))
+          (zipmap terminals matches)
+          false)))
     
     ;;; We're going to produce a tree whose leaves we can plumb to walk
     ;;; the templates.
@@ -144,18 +153,18 @@
           terminals (-> (make-rules)
                         ;; {"name":{"$search":"Charles"}}
                         (add-rule 'name
-                                  (λ [query]
-                                    (λ [name]
+                                  (λ [name]
+                                    (λ [query]
                                       `(:name ~name ~@query))))
                         (add-rule 'locality
-                                  (λ [query]
-                                    (λ [locality]
+                                  (λ [locality]
+                                    (λ [query]
                                       `(:locality ~locality ~@query))))
-                        (add-rule 'attribute
-                                  (λ [query]
-                                    (λ [attribute]
+                        (add-rule 'attributes
+                                  (λ [attributes]
+                                    (λ [query]
                                       ;; Not realistic
-                                      `(:filters {~attribute {:$eq true}} ~@query))))
+                                      `(:filters {~attributes {:$eq true}} ~@query))))
                         ;; Might be able to do this with e.g. (| restaurant
                         ;; cuisine); therefore, everything should be a rule,
                         ;; even `|', `?'? Or should we special-case them?
@@ -188,8 +197,16 @@
                          (add-rule '? (λ [rest]
                                         (cons rest
                                               '(())))))]
-      (let [template '(restaurant-or-cuisine in-locality? with-attributes?)
-            query "cafes in santa monica with wifi"]
+      (let [meta-templates
+            '((restaurant-or-cuisine in-locality? with-attributes?)
+              ("fuckj" "this" "shit"))
+            templates (apply concat
+                             (map (λ [meta-template]
+                                    (generate-templates
+                                     generators
+                                     non-terminals
+                                     meta-template))
+                                  meta-templates))]
         ;; At some point we have to run the reduction on the template,
         ;; which may expand into multiple templates.
         ;;
@@ -198,7 +215,8 @@
         ;;
         ;; It specificall now has only one level of recursion, though,
         ;; doesn't it? Yes.
-        (debug (generate-templates generators non-terminals template))))
+        (let [query "cafes in santa monica with wifi"]
+          (debug (map (λ [template] (match template query)) templates)))))
     
   #+END_SRC
 
@@ -234,6 +252,10 @@
 
   We're doing something wrong here; can we generate an atomic form
   that knows not to recurse? Vector is that; same problem.
+
+  We should probably prefer more specific templates, shouldn't we?
+  Then how do we find businesses with names containing "in"? Keep
+  applying less specific templates until we get some results?
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
