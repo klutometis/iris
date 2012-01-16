@@ -66,11 +66,12 @@
   dice it.
 
   #+BEGIN_SRC clojure :tangle compile-to-regex.clj :shebang #!/usr/bin/env clj
-    (use 'clojure.string)
-    
     (use 'add-classpath.core)
     (add-classpath "lib/*")
     (add-classpath "lib/dev/*")
+    
+    (use 'clojure.string)
+    (use 'clojure.math.combinatorics)
     
     (use 'lambda.core)
     (use 'debug.core)
@@ -178,13 +179,13 @@
                          #_(add-rule '? (λ [rest]
                                         (cons rest
                                               '(())))))]
-      (let [template '(restaurant-or-cuisine
-                       in-locality?
-                       with-attributes?)
+      (let [template '(restaurant-or-cuisine in-locality? with-attributes?)
             query "cafes in santa monica with wifi"]
         ;; At some point we have to run the reduction on the template,
         ;; which may expand into multiple templates.
-        (debug (generate generators non-terminals template))))
+        (debug (map (λ [product] (reduce conj '() product))
+                    (apply cartesian-product
+                           (generate generators non-terminals template))))))
     
   #+END_SRC
 
@@ -217,6 +218,9 @@
   I can't figure out how to distinguish between lists-as-atoms and
   lists-as-branches; I'm going to prematurely suspend the recursion,
   therefore, by returning vectors for atomic lists. Goddammit.
+
+  We're doing something wrong here; can we generate an atomic form
+  that knows not to recurse? Vector is that; same problem.
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
