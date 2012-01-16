@@ -116,6 +116,8 @@
                           (if (seq? generated)
                             (map generate generated)
                             generated))
+                        ;; This is the one-deep generation.
+                        #_(generate (generator (cdr sentence)))
                         (map generate sentence))))
                   (if (symbol? sentence)
                     (let [non-terminal (get non-terminals sentence)]
@@ -124,6 +126,11 @@
                         sentence))
                     sentence)))]
         (generate sentence)))
+    
+    (defλ generate-templates [generators non-terminals template]
+      (map (λ [template] (remove nil? (flatten template)))
+           (apply cartesian-product
+                  (generate generators non-terminals template))))
     
     ;;; thing -> restaurant.name | place.name | category; restaurant.name
     ;;; and place.name will have to set the :restaurants-us and :place
@@ -173,19 +180,23 @@
                             (add-rule 'with-attributes? '(? "with" attributes)))
           generators (-> (make-rules)
                          (add-rule '| (λ [rest] rest))
-                         (add-rule '? (λ [rest]
-                                        (cons (into (vector) rest)
-                                              [nil])))
                          #_(add-rule '? (λ [rest]
+                                          (cons (into (vector) rest)
+                                                [nil])))
+                         (add-rule '? (λ [rest]
                                         (cons rest
                                               '(())))))]
       (let [template '(restaurant-or-cuisine in-locality? with-attributes?)
             query "cafes in santa monica with wifi"]
         ;; At some point we have to run the reduction on the template,
         ;; which may expand into multiple templates.
-        (debug (map (λ [product] (reduce conj '() product))
-                    (apply cartesian-product
-                           (generate generators non-terminals template))))))
+        ;;
+        ;; At the Cartesian-product stage, we can recursively generate and
+        ;; flatten the Cartesian products.
+        ;;
+        ;; It specificall now has only one level of recursion, though,
+        ;; doesn't it? Yes.
+        (debug (generate-templates generators non-terminals template))))
     
   #+END_SRC
 
