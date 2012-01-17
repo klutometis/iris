@@ -238,7 +238,8 @@
           (debug
            (remove empty?
                    (map (λ [template]
-                          (reduce-rules (apply-rules terminals (match template query))))
+                          (reduce-rules
+                           (apply-rules terminals (match template query))))
                         templates))))))
     
   #+END_SRC
@@ -281,6 +282,9 @@
   applying less specific templates until we get some results?
 
   Apply rules and reduce query.
+
+  Let's get something working now (we can interleave text and code, by
+  the way, by actually using the noweb features).
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
