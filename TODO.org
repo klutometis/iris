@@ -74,6 +74,7 @@
     
     (use 'clojure.string)
     (use 'clojure.math.combinatorics)
+    (use 'slingshot.slingshot)
     
     (use 'lambda.core)
     (use 'debug.core)
@@ -90,6 +91,18 @@
                          (map (λ [token]
                                 (if (string? token) token "(.+)"))
                               template)))))
+    
+    (defλ reduce-rules [rules]
+      (reduce (λ [query rule] (rule query)) {} rules))
+    
+    (defλ apply-rules [rules rule->query]
+      (map (λ [[rule query]]
+             (if-let [rule (get rules rule)]
+               (rule query)
+               ;; We're bailing out here; but what if non-rules evaluated
+               ;; to themselves?
+               (throw+ {:cause rule} "I encountered an unknown rule: %s." rule)))
+           rule->query))
     
     ;;; This only matches the whole thing; we can construct partial
     ;;; matches if we built it ourself, can't we? Are partial matches
@@ -135,7 +148,9 @@
                       (if non-terminal
                         (generate non-terminal)
                         sentence))
-                    sentence)))]
+                    ;; This prevents e.g. strings from being destructured;
+                    ;; should we specifically test for strings?
+                    (list sentence))))]
         (generate sentence)))
     
     (defλ generate-templates [generators non-terminals template]
@@ -152,10 +167,14 @@
     (let [;; Terminals
           terminals (-> (make-rules)
                         ;; {"name":{"$search":"Charles"}}
-                        (add-rule 'name
+                        (add-rule 'restaurant
                                   (λ [name]
                                     (λ [query]
-                                      `(:name ~name ~@query))))
+                                      `(:restaurants-us :name ~name ~@query))))
+                        (add-rule 'cuisine
+                                  (λ [name]
+                                    (λ [query]
+                                      `(:restaurants-us :cuisine ~name ~@query))))
                         (add-rule 'locality
                                   (λ [locality]
                                     (λ [query]
@@ -198,7 +217,8 @@
                                         (cons rest
                                               '(())))))]
       (let [meta-templates
-            '((restaurant-or-cuisine in-locality? with-attributes?))
+            '((restaurant-or-cuisine in-locality? with-attributes?)
+              ("fuck" "this" "shit"))
             templates (apply concat
                              (map (λ [meta-template]
                                     (generate-templates
@@ -206,7 +226,6 @@
                                      non-terminals
                                      meta-template))
                                   meta-templates))]
-        (debug templates)
         ;; At some point we have to run the reduction on the template,
         ;; which may expand into multiple templates.
         ;;
@@ -216,7 +235,11 @@
         ;; It specificall now has only one level of recursion, though,
         ;; doesn't it? Yes.
         (let [query "cafes in santa monica with wifi"]
-          (debug (map (λ [template] (match template query)) templates)))))
+          (debug
+           (remove empty?
+                   (map (λ [template]
+                          (reduce-rules (apply-rules terminals (match template query))))
+                        templates))))))
     
   #+END_SRC
 
@@ -256,6 +279,8 @@
   We should probably prefer more specific templates, shouldn't we?
   Then how do we find businesses with names containing "in"? Keep
   applying less specific templates until we get some results?
+
+  Apply rules and reduce query.
 * TODO Get something working.
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
