@@ -285,7 +285,8 @@
 
   Let's get something working now (we can interleave text and code, by
   the way, by actually using the noweb features).
-* TODO Get something working.
+* DONE Get something working.
+  CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
     addClassPath("lib/stt.jar");
     addClassPath("lib/minim.jar");
@@ -961,7 +962,8 @@
   #+BEGIN_SRC clojure
     (fun/fetch :places :q "Starbucks,Santa Monica")
   #+END_SRC
-* TODO Geocoding, reverse geocoding
+* DONE Geocoding, reverse geocoding
+  CLOSED: [2012-01-17 Tue 15:09]
   Check out this [[http://code.google.com/apis/maps/documentation/geocoding/][Google library]]. Also [[http://www.maxmind.com/app/geolitecity][GeoLite City]] for getting city
   from IP (a hack, to be sure). [[http://snipplr.com/view/7985/googleloaderclientlocation-to-get-a-persons-latlong-using-their-ip-address/][google.loader.ClientLocation]] (for
   browers, though). [[http://www.caida.org/tools/utilities/netgeo/][NetGeo]] used to work. [[http://www.geobytes.com/IpLocator.htm][GeoBytes]]. [[http://code.google.com/apis/latitude/v1/using_rest.html][Google Latitude]].
@@ -1132,69 +1134,8 @@
     curl 'http://api.ipinfodb.com/v3/ip-city/?key=<api-key>'
   #+END_SRC
 
-* TODO Grammar
-  We could go [[http://nlp.stanford.edu/software/lex-parser.shtml][Stanford]] on this; but why not start with regular
-  expressions? Something to the effect of: "find $x$ near $y$;" where
-  $y$ gets thrown into the Factual query:
-  #+BEGIN_SRC clojure
-    (fun/fetch :places :q "Starbucks,Santa Monica")
-  #+END_SRC
-  (we could special-case e.g. "me" and locate the user; but that's
-  extra credit) and where $x$ is a name or one of the [[http://developer.factual.com/display/docs/Places+API+-+Categories][Factual
-  categories]]?
-
-  Can we use pattern matching instead of regular expressions?
-
-  #+BEGIN_SRC clojure :tangle match.clj :shebang #!/usr/bin/env clj
-    (use 'add-classpath.core)
-    
-    (add-classpath "lib/*")
-    
-    (use '[clojure.core.match :only (match)])
-    (use 'debug.core)
-    (use '[clojure.string :only (split)])
-    (use 'funnyplaces.api)
-    
-    (source "v3-key-secret.clj")
-    
-    #_(debug
-       (match ['("find" "hair" "removal" "in" "los" "angeles")]
-              [(["find" & rest] :seq)]
-              (match (partition-by #(= "in" %) rest)
-                     [([what in where] :seq)] what)))
-    
-    (let [query "find hair removal in los angeles"]
-      (match (split query #"\\b")
-             [(["find" & rest] :seq)]
-             (match (partition-by #(= "in" %) rest) 
-                    [([what in where] :seq)] what))
-      (debug (re-matches #"find (.+) in (.+)" query)))
-  #+END_SRC
-
-  #+BEGIN_SRC clojure :tangle factual.clj :shebang #!/usr/bin/env clj
-    (use 'add-classpath.core)
-    
-    (add-classpath "lib/*")
-    
-    (use 'funnyplaces.api)
-    (use 'debug.core)
-    
-    (load-file "key-secret.clj")
-    
-    (factual! *key* *secret*)
-    
-    ;;; We've remove URL encoding from these examples for clarity, but
-    ;;; remember to URL encode the entirety of your JSON string before
-    ;;; calling.
-    (let [query "find hair removal in los angeles"]
-      (debug #_(fetch :places :limit 1 :filters {"locality" "los angeles"})
-             #_(resolve {"name" "ino", "latitude" 40.73, "longitude" -74.01})
-             (let [[query what where] (re-matches #"find (.+) in (.+)" query)]
-               (debug what where (format "%s,%s" what where))
-               (fetch :places :q (format "%s,%s" what where)))))
-    
-  #+END_SRC
-* TODO Speech-to-text
+* DONE Speech-to-text
+  CLOSED: [2012-01-17 Tue 15:08]
   #+BEGIN_SRC sh
     curl -A Mozilla "http://translate.google.com/translate_tts?q=i'm+relatively+indifferent+to+techcrunch"
     mplayer "http://translate.google.com/translate_tts?ie=UTF-8&tl=de&q=einst+ging+ich+zum+raggies"
@@ -1474,7 +1415,8 @@
       (recur))
     
   #+END_SRC
-* TODO Catch signal
+* DONE Catch signal
+  CLOSED: [2012-01-17 Tue 15:08]
   #+BEGIN_SRC clojure :tangle signal.clj :shebang #!/usr/bin/env clj
     (sun.misc.Signal/handle
      (sun.misc.Signal. "HUP")
@@ -1484,10 +1426,8 @@
     
     (read-line)
   #+END_SRC
-* TODO Ideas
-  crosswalk -> yelp -> rating (thanks, Aaron); also: we can [[http://developer.factual.com/display/docs/Core+API+-+Row+Filters][or]] things
-  together.
-* TODO Need a newline-newline hack (record in a thread?)
+* DONE Need a newline-newline hack (record in a thread?)
+  CLOSED: [2012-01-17 Tue 15:08]
   #+BEGIN_SRC clojure :tangle threads.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
     (add-classpath "lib/*")
@@ -1540,7 +1480,8 @@
                              wave))))
     
   #+END_SRC
-* TODO Implement "near me"
+* DONE Implement "near me"
+  CLOSED: [2012-01-17 Tue 15:08]
   #+BEGIN_SRC clojure :tangle near-me.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
     (add-classpath "lib/*")
@@ -1607,4 +1548,72 @@
            (locality-parser "find lingerie in los angeles"))
     
   #+END_SRC
-* TODO =new-line= before listen; to control flow a little better.
+* DONE =new-line= before listen; to control flow a little better.
+  CLOSED: [2012-01-17 Tue 15:08]
+* CANCELED Ideas
+  CLOSED: [2012-01-17 Tue 15:10]
+  crosswalk -> yelp -> rating (thanks, Aaron); also: we can [[http://developer.factual.com/display/docs/Core+API+-+Row+Filters][or]] things
+  together.
+* CANCELED Grammar
+  CLOSED: [2012-01-17 Tue 15:09]
+  We could go [[http://nlp.stanford.edu/software/lex-parser.shtml][Stanford]] on this; but why not start with regular
+  expressions? Something to the effect of: "find $x$ near $y$;" where
+  $y$ gets thrown into the Factual query:
+  #+BEGIN_SRC clojure
+    (fun/fetch :places :q "Starbucks,Santa Monica")
+  #+END_SRC
+  (we could special-case e.g. "me" and locate the user; but that's
+  extra credit) and where $x$ is a name or one of the [[http://developer.factual.com/display/docs/Places+API+-+Categories][Factual
+  categories]]?
+
+  Can we use pattern matching instead of regular expressions?
+
+  #+BEGIN_SRC clojure :tangle match.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    
+    (use '[clojure.core.match :only (match)])
+    (use 'debug.core)
+    (use '[clojure.string :only (split)])
+    (use 'funnyplaces.api)
+    
+    (source "v3-key-secret.clj")
+    
+    #_(debug
+       (match ['("find" "hair" "removal" "in" "los" "angeles")]
+              [(["find" & rest] :seq)]
+              (match (partition-by #(= "in" %) rest)
+                     [([what in where] :seq)] what)))
+    
+    (let [query "find hair removal in los angeles"]
+      (match (split query #"\\b")
+             [(["find" & rest] :seq)]
+             (match (partition-by #(= "in" %) rest) 
+                    [([what in where] :seq)] what))
+      (debug (re-matches #"find (.+) in (.+)" query)))
+  #+END_SRC
+
+  #+BEGIN_SRC clojure :tangle factual.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    
+    (use 'funnyplaces.api)
+    (use 'debug.core)
+    
+    (load-file "key-secret.clj")
+    
+    (factual! *key* *secret*)
+    
+    ;;; We've remove URL encoding from these examples for clarity, but
+    ;;; remember to URL encode the entirety of your JSON string before
+    ;;; calling.
+    (let [query "find hair removal in los angeles"]
+      (debug #_(fetch :places :limit 1 :filters {"locality" "los angeles"})
+             #_(resolve {"name" "ino", "latitude" 40.73, "longitude" -74.01})
+             (let [[query what where] (re-matches #"find (.+) in (.+)" query)]
+               (debug what where (format "%s,%s" what where))
+               (fetch :places :q (format "%s,%s" what where)))))
+    
+  #+END_SRC
