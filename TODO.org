@@ -347,6 +347,9 @@
              (1)
              nil)))
     
+  #+END_SRC
+
+  #+BEGIN_SRC clojure :tangle ordered-subsets-vector.clj :shebang #!/usr/bin/env clj
     ;;; If you don't mind vectors.
     (defλ ordered-subsets [items]
       "All the ordered subsets of items: taken from
