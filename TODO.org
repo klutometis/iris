@@ -285,6 +285,32 @@
 
   Let's get something working now (we can interleave text and code, by
   the way, by actually using the noweb features).
+  #+BEGIN_SRC clojure :tangle ordered-power-sets.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (use 'debug.core)
+    (use 'lambda.core)
+    
+    (use 'clojure.math.combinatorics)
+    
+    (defλ ordered-subsets [items]
+      "All the ordered subsets of items: taken from
+    <https://github.com/clojure/math.combinatorics/blob/master/src/main/clojure/clojure/math/combinatorics.clj#L81>."
+      (reduce (λ [subsets subset]
+                (concat (map (λ [permutations]
+                               ;; All this shit is just to recast vectors
+                               ;; into lists.
+                               (into nil permutations))
+                             (permutations subset))
+                        subsets))
+              nil
+              (subsets items)))
+    
+    (debug (ordered-subsets '(1 2 3)))
+    
+  #+END_SRC
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
