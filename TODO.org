@@ -285,6 +285,26 @@
 
   Let's get something working now (we can interleave text and code, by
   the way, by actually using the noweb features).
+
+  Can we apply micro-templates somehow, such that we don't have to
+  worry about the order of e.g. =with= and =in=? Templates are just a
+  poor-man's approximation for parsing; there are limitations. Do you
+  want to tweak an inferior strategy =ad nauseum=?
+
+  Ouch: what about the case where the application of the rules wants
+  to generate multiple possibilites?
+
+  David mentioned acquiring attributes from a joint; not merely
+  listing joints: e.g. "Does such-and-such have wifi?" "What are
+  such-and-such's operating hours?"
+
+  The main distinguishing feature of templates is expansibility; the
+  web-demo should allow the user to add templates.
+
+  An alternative to micro-templates is to have an unordered powerset
+  symbol, e.g. =!=, that generates all ordered powersets. We take away
+  =!= from meaning "not", of course.
+
   #+BEGIN_SRC clojure :tangle ordered-power-sets.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
     (add-classpath "lib/*")
@@ -311,6 +331,8 @@
     (debug (ordered-subsets '(1 2 3)))
     
   #+END_SRC
+
+  (=C-c q= joins lines in ESK, by the way.)
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
