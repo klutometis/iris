@@ -314,6 +314,7 @@
     (use 'lambda.core)
     
     (use 'clojure.math.combinatorics)
+    (use 'clojure.test)
     
     (defλ ordered-subsets [items]
       "All the ordered subsets of items: taken from
@@ -328,8 +329,50 @@
               nil
               (subsets items)))
     
-    (debug (ordered-subsets '(1 2 3)))
+    (is (= (ordered-subsets '(1 2 3))
+           '((3 2 1)
+             (2 3 1)
+             (3 1 2)
+             (1 3 2)
+             (2 1 3)
+             (1 2 3)
+             (3 2)
+             (2 3)
+             (3 1)
+             (1 3)
+             (2 1)
+             (1 2)
+             (3)
+             (2)
+             (1)
+             nil)))
     
+    ;;; If you don't mind vectors.
+    (defλ ordered-subsets [items]
+      "All the ordered subsets of items: taken from
+    <https://github.com/clojure/math.combinatorics/blob/master/src/main/clojure/clojure/math/combinatorics.clj#L81>."
+      (reduce (λ [subsets subset]
+                (concat (permutations subset) subsets))
+              nil
+              (subsets items)))
+    
+    (is (= (ordered-subsets '(1 2 3))
+           '([1 2 3]
+               [1 3 2]
+               [2 1 3]
+               [2 3 1]
+               [3 1 2]
+               [3 2 1]
+               [2 3]
+               [3 2]
+               [1 3]
+               [3 1]
+               [1 2]
+               [2 1]
+               [3]
+               [2]
+               [1]
+               [])))
   #+END_SRC
 
   (=C-c q= joins lines in ESK, by the way.)
