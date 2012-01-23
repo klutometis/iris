@@ -1,3 +1,4 @@
+* TODO Ordered subsets with =^=
 * TODO fastCGI and Clojure over JNA?
   [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
 * TODO Template-based parsing
@@ -158,6 +159,19 @@
            (apply cartesian-product
                   (generate generators non-terminals template))))
     
+    (defλ ordered-subsets [items]
+      "All the ordered subsets of items: taken from
+    <https://github.com/clojure/math.combinatorics/blob/master/src/main/clojure/clojure/math/combinatorics.clj#L81>."
+      (reduce (λ [subsets subset]
+                (concat (map (λ [permutations]
+                               ;; All this shit is just to recast vectors
+                               ;; into lists.
+                               (into nil permutations))
+                             (permutations subset))
+                        subsets))
+              nil
+              (subsets items)))
+    
     ;;; thing -> restaurant.name | place.name | category; restaurant.name
     ;;; and place.name will have to set the :restaurants-us and :place
     ;;; datasets. Will :place bail out when e.g. :meal_dinner is set? Yes,
@@ -215,9 +229,13 @@
                                                 [nil])))
                          (add-rule '? (λ [rest]
                                         (cons rest
-                                              '(())))))]
+                                              '(()))))
+                         (add-rule '^ (λ [rest]
+                                        (ordered-subsets rest))))]
       (let [meta-templates
-            '((restaurant-or-cuisine in-locality? with-attributes?)
+            '(
+              #_(restaurant-or-cuisine in-locality? with-attributes?)
+              (restaurant-or-cuisine (^ in-locality? with-attributes?))
               ("fuck" "this" "shit"))
             templates (apply concat
                              (map (λ [meta-template]
@@ -234,6 +252,7 @@
         ;;
         ;; It specificall now has only one level of recursion, though,
         ;; doesn't it? Yes.
+        (debug templates)
         (let [query "cafes in santa monica with wifi"]
           (debug
            (remove empty?
@@ -304,6 +323,9 @@
   An alternative to micro-templates is to have an unordered powerset
   symbol, e.g. =!=, that generates all ordered powersets. We take away
   =!= from meaning "not", of course.
+
+  No, let's have =^= signify powersets; also, what about the case
+  where we check e.g. locality against a list of localities
 
   #+BEGIN_SRC clojure :tangle ordered-power-sets.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
