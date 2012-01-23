@@ -1,4 +1,9 @@
+* TODO Domain-specific filters
+  Pre-filter on whether e.g. locality or stemmed category is valid; be
+  able to look these up.
 * TODO Ordered subsets with =^=
+* TODO Stemming with =/=
+  Or should we do it automatically?
 * TODO fastCGI and Clojure over JNA?
   [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
 * TODO Template-based parsing
@@ -401,6 +406,8 @@
   #+END_SRC
 
   (=C-c q= joins lines in ESK, by the way.)
+
+  [[http://hackerboss.com/approximate-regex-matching-in-python/][Approximate regex matching?]] Edit distance?
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
