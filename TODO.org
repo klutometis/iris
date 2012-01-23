@@ -235,12 +235,15 @@
                          (add-rule '? (λ [rest]
                                         (cons rest
                                               '(()))))
-                         (add-rule '^ (λ [rest]
-                                        (ordered-subsets rest))))]
+                         ;; Use `~' for `not', then; can't do sharks here.
+                         (add-rule '!
+                                   (λ [rest]
+                                     (ordered-subsets rest)))
+                         )]
       (let [meta-templates
             '(
               #_(restaurant-or-cuisine in-locality? with-attributes?)
-              (restaurant-or-cuisine (^ in-locality? with-attributes?))
+              (restaurant-or-cuisine (! in-locality? with-attributes?))
               ("fuck" "this" "shit"))
             templates (apply concat
                              (map (λ [meta-template]
