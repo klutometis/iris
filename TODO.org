@@ -177,94 +177,79 @@
               nil
               (subsets items)))
     
-    ;;; thing -> restaurant.name | place.name | category; restaurant.name
-    ;;; and place.name will have to set the :restaurants-us and :place
-    ;;; datasets. Will :place bail out when e.g. :meal_dinner is set? Yes,
-    ;;; this barfs: (fetch :places :limit 3 :filters {:meal_dinner {:$eq
-    ;;; true}}); this, however, is successful: (fetch :restaurants-us
-    ;;; :limit 3 :filters {:meal_dinner {:$eq true}}).
-    (let [;; Terminals
-          terminals (-> (make-rules)
-                        ;; {"name":{"$search":"Charles"}}
-                        (add-rule 'restaurant
-                                  (λ [name]
-                                    (λ [query]
-                                      `(:restaurants-us :name ~name ~@query))))
-                        (add-rule 'cuisine
-                                  (λ [name]
-                                    (λ [query]
-                                      `(:restaurants-us :cuisine ~name ~@query))))
-                        (add-rule 'locality
-                                  (λ [locality]
-                                    (λ [query]
-                                      `(:locality ~locality ~@query))))
-                        (add-rule 'attributes
-                                  (λ [attributes]
-                                    (λ [query]
-                                      ;; Not realistic
-                                      `(:filters {~attributes {:$eq true}} ~@query))))
-                        ;; Might be able to do this with e.g. (| restaurant
-                        ;; cuisine); therefore, everything should be a rule,
-                        ;; even `|', `?'? Or should we special-case them?
-                        ;;
-                        ;; If everything is lambda, we have to distinguish
-                        ;; between production rules (which produce other
-                        ;; rules) from terminals that modify queries.
-                        ;;
-                        ;; Can we have production-rules that get run first;
-                        ;; and query-rules to which they get mapped?
-                        ;;
-                        ;; The end of production-rules should be a list
-                        ;; of query-rule terminals and strings. Strings
-                        ;; are a special case, though, and could
-                        ;; just-as-well be a query-rule? Nah.
-                        ;;
-                        ;; The production rules get fed back into the
-                        ;; reduce until they, too, reduce to simples.
-                        )
-          ;; Templates?
-          non-terminals (-> (make-rules)
-                            (add-rule 'restaurant-or-cuisine '(| restaurant cuisine))
-                            (add-rule 'in-locality? '(? "in" locality))
-                            (add-rule 'with-attributes? '(? "with" attributes)))
-          generators (-> (make-rules)
-                         (add-rule '| (λ [rest] rest))
-                         #_(add-rule '? (λ [rest]
-                                          (cons (into (vector) rest)
-                                                [nil])))
-                         (add-rule '? (λ [rest]
-                                        (cons rest
-                                              '(()))))
-                         ;; Use `~' for `not', then; can't do sharks here.
-                         (add-rule '!
-                                   (λ [rest]
-                                     (ordered-subsets rest)))
-                         )]
-      (let [meta-templates
-            '((restaurant-or-cuisine (! in-locality? with-attributes?)))
-            templates (apply concat
-                             (map (λ [meta-template]
-                                    (generate-templates
-                                     generators
-                                     non-terminals
-                                     meta-template))
-                                  meta-templates))]
-        ;; At some point we have to run the reduction on the template,
-        ;; which may expand into multiple templates.
-        ;;
-        ;; At the Cartesian-product stage, we can recursively generate and
-        ;; flatten the Cartesian products.
-        ;;
-        ;; It specificall now has only one level of recursion, though,
-        ;; doesn't it? Yes.
-        (debug templates)
-        (let [query "cafes in santa monica with wifi"]
-          (doall (remove empty?
-                   (map (λ [template]
-                          (debug (match template query))
-                          (reduce-rules
-                           (apply-rules terminals (match template query))))
-                        templates))))))
+    (defλ sort-matches-by-specificity [matches]
+      (sort-by count > matches))
+    
+    (defλ generate-matches [templates query]
+      (map (λ [template] (match template query)) templates))
+    
+    (defλ generate-templates-from-meta-templates
+      [meta-templates generators non-terminals]
+      (apply concat
+             (map (λ [meta-template]
+                    (generate-templates
+                     generators
+                     non-terminals
+                     meta-template))
+                  meta-templates)))
+    
+    (def ^:dynamic *terminals*
+      (-> (make-rules)
+          (add-rule 'restaurant
+                    (λ [name]
+                      (λ [query]
+                        `(:restaurants-us :name ~name ~@query))))
+          (add-rule 'cuisine
+                    (λ [name]
+                      (λ [query]
+                        `(:restaurants-us :cuisine ~name ~@query))))
+          (add-rule 'locality
+                    (λ [locality]
+                      (λ [query]
+                        `(:locality ~locality ~@query))))
+          (add-rule 'attributes
+                    (λ [attributes]
+                      (λ [query]
+                        ;; Not realistic
+                        `(:filters {~attributes {:$eq true}} ~@query))))))
+    
+    (def ^:dynamic *non-terminals*
+      (-> (make-rules)
+          (add-rule 'restaurant-or-cuisine '(| restaurant cuisine))
+          (add-rule 'in-locality? '(? "in" locality))
+          (add-rule 'with-attributes? '(? "with" attributes))))
+    
+    (def ^:dynamic *generators*
+      (-> (make-rules)
+          (add-rule '| (λ [rest] rest))
+          #_(add-rule '? (λ [rest]
+                           (cons (into (vector) rest)
+                                 [nil])))
+          (add-rule '? (λ [rest]
+                         (cons rest
+                               '(()))))
+          ;; Use `~' for `not', then; can't do sharks here.
+          (add-rule '!
+                    (λ [rest]
+                      (ordered-subsets rest)))
+          ))
+    
+    (def ^:dynamic *meta-templates*
+      '((restaurant-or-cuisine (! in-locality? with-attributes?))))
+    
+    (let [templates (generate-templates-from-meta-templates
+                     *meta-templates*
+                     *generators*
+                     *non-terminals*)]
+      (let [query "cafes in santa monica with wifi"
+            matches (-> (generate-matches templates query)
+                        (sort-matches-by-specificity))]
+        (debug matches)
+        (remove empty?
+                (map (λ [template]
+                       (reduce-rules
+                        (apply-rules *terminals* (match template query))))
+                     templates))))
   #+END_SRC
 
   Non-terminals are symbols; terminals are strings and lambdas. We can
