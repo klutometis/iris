@@ -130,7 +130,7 @@
         (if (= (count matches)
                (count terminals))
           (zipmap terminals matches)
-          false)))
+          nil)))
     
     ;;; We're going to produce a tree whose leaves we can plumb to walk
     ;;; the templates.
@@ -241,10 +241,7 @@
                                      (ordered-subsets rest)))
                          )]
       (let [meta-templates
-            '(
-              #_(restaurant-or-cuisine in-locality? with-attributes?)
-              (restaurant-or-cuisine (! in-locality? with-attributes?))
-              ("fuck" "this" "shit"))
+            '((restaurant-or-cuisine (! in-locality? with-attributes?)))
             templates (apply concat
                              (map (λ [meta-template]
                                     (generate-templates
@@ -268,7 +265,6 @@
                           (reduce-rules
                            (apply-rules terminals (match template query))))
                         templates))))))
-    
   #+END_SRC
 
   Non-terminals are symbols; terminals are strings and lambdas. We can
@@ -411,6 +407,9 @@
   (=C-c q= joins lines in ESK, by the way.)
 
   [[http://hackerboss.com/approximate-regex-matching-in-python/][Approximate regex matching?]] Edit distance?
+
+  We can actually do a little NLP /after/ we apply the templates; that
+  might allow us to ferret out verbs, etc.
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
