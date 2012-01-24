@@ -235,9 +235,9 @@
         ;; It specificall now has only one level of recursion, though,
         ;; doesn't it? Yes.
         (let [query "cafes in santa monica with wifi"]
-          (debug
-           (remove empty?
+          (doall (remove empty?
                    (map (λ [template]
+                          (debug (match template query))
                           (reduce-rules
                            (apply-rules terminals (match template query))))
                         templates))))))
