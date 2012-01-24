@@ -1,3 +1,9 @@
+* TODO Domain-specific filters
+  Pre-filter on whether e.g. locality or stemmed category is valid; be
+  able to look these up.
+* TODO Ordered subsets with =^=
+* TODO Stemming with =/=
+  Or should we do it automatically?
 * TODO fastCGI and Clojure over JNA?
   [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
 * TODO Template-based parsing
@@ -124,7 +130,7 @@
         (if (= (count matches)
                (count terminals))
           (zipmap terminals matches)
-          false)))
+          nil)))
     
     ;;; We're going to produce a tree whose leaves we can plumb to walk
     ;;; the templates.
@@ -157,6 +163,19 @@
       (map (λ [template] (remove nil? (flatten template)))
            (apply cartesian-product
                   (generate generators non-terminals template))))
+    
+    (defλ ordered-subsets [items]
+      "All the ordered subsets of items: taken from
+    <https://github.com/clojure/math.combinatorics/blob/master/src/main/clojure/clojure/math/combinatorics.clj#L81>."
+      (reduce (λ [subsets subset]
+                (concat (map (λ [permutations]
+                               ;; All this shit is just to recast vectors
+                               ;; into lists.
+                               (into nil permutations))
+                             (permutations subset))
+                        subsets))
+              nil
+              (subsets items)))
     
     ;;; thing -> restaurant.name | place.name | category; restaurant.name
     ;;; and place.name will have to set the :restaurants-us and :place
@@ -215,10 +234,14 @@
                                                 [nil])))
                          (add-rule '? (λ [rest]
                                         (cons rest
-                                              '(())))))]
+                                              '(()))))
+                         ;; Use `~' for `not', then; can't do sharks here.
+                         (add-rule '!
+                                   (λ [rest]
+                                     (ordered-subsets rest)))
+                         )]
       (let [meta-templates
-            '((restaurant-or-cuisine in-locality? with-attributes?)
-              ("fuck" "this" "shit"))
+            '((restaurant-or-cuisine (! in-locality? with-attributes?)))
             templates (apply concat
                              (map (λ [meta-template]
                                     (generate-templates
@@ -234,6 +257,7 @@
         ;;
         ;; It specificall now has only one level of recursion, though,
         ;; doesn't it? Yes.
+        (debug templates)
         (let [query "cafes in santa monica with wifi"]
           (doall (remove empty?
                    (map (λ [template]
@@ -241,7 +265,6 @@
                           (reduce-rules
                            (apply-rules terminals (match template query))))
                         templates))))))
-    
   #+END_SRC
 
   Non-terminals are symbols; terminals are strings and lambdas. We can
@@ -304,6 +327,9 @@
   An alternative to micro-templates is to have an unordered powerset
   symbol, e.g. =!=, that generates all ordered powersets. We take away
   =!= from meaning "not", of course.
+
+  No, let's have =^= signify powersets; also, what about the case
+  where we check e.g. locality against a list of localities
 
   #+BEGIN_SRC clojure :tangle ordered-power-sets.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
@@ -379,6 +405,11 @@
   #+END_SRC
 
   (=C-c q= joins lines in ESK, by the way.)
+
+  [[http://hackerboss.com/approximate-regex-matching-in-python/][Approximate regex matching?]] Edit distance?
+
+  We can actually do a little NLP /after/ we apply the templates; that
+  might allow us to ferret out verbs, etc.
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
