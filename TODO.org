@@ -1,9 +1,12 @@
+* TODO Expose over Heroku.
 * TODO Domain-specific filters
   Pre-filter on whether e.g. locality or stemmed category is valid; be
   able to look these up.
 * TODO Ordered subsets with =^=
 * TODO Stemming with =/=
   Or should we do it automatically?
+
+  [[http://dakrone.github.com/clojure-opennlp/][clojure-opennlp]] has some wordnet stuff, apparently;
 * TODO fastCGI and Clojure over JNA?
   [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
 * TODO Template-based parsing
@@ -231,8 +234,7 @@
           ;; Use `~' for `not', then; can't do sharks here.
           (add-rule '!
                     (λ [rest]
-                      (ordered-subsets rest)))
-          ))
+                      (ordered-subsets rest)))))
     
     (def ^:dynamic *meta-templates*
       '((restaurant-or-cuisine (! in-locality? with-attributes?))))
@@ -250,6 +252,7 @@
                        (reduce-rules
                         (apply-rules *terminals* (match template query))))
                      templates))))
+    
   #+END_SRC
 
   Non-terminals are symbols; terminals are strings and lambdas. We can
@@ -395,6 +398,38 @@
 
   We can actually do a little NLP /after/ we apply the templates; that
   might allow us to ferret out verbs, etc.
+
+  We have the matches ordered by specificity; should we =cdr= down the
+  list in decreasing specificity until we get some hits, combining
+  results of equal specificity? Or simply take the first match
+  (randomized?) of highest specificity?
+
+  How does API work?
+
+  #+BEGIN_SRC clojure :tangle test-cafes.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (load-file "key-secret.clj")
+    
+    (use 'funnyplaces.api)
+    (use 'debug.core)
+    (use 'clojure.test)
+    
+    (factual! *key* *secret*)
+    
+    (debug (fetch :restaurants-us :filters {:cuisine {:$search "cafe"}}))
+    
+    ;;; `Cafes', for instance, doesn't work.
+    (is (empty? (fetch :restaurants-us :filters {:cuisine {:$search "cafes"}})))
+  #+END_SRC
+
+  We're going to have to stem the cuisine and compare it to the [[http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112][list
+  of cuisines]].
+
+  Heh: at compile-time, pull them down
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
@@ -1708,11 +1743,12 @@
     (use 'add-classpath.core)
     
     (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (load-file "key-secret.clj")
     
     (use 'funnyplaces.api)
     (use 'debug.core)
-    
-    (load-file "key-secret.clj")
     
     (factual! *key* *secret*)
     

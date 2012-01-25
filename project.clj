@@ -1,7 +1,9 @@
 (defproject iris "1.0.0-SNAPSHOT"
   :description "A Factually-aware Siri-clone"
-  :dependencies [[org.clojure/clojure "1.3.0"]
-                 [funnyplaces "1.2-beta"]
+  :dependencies [
+                 ;; [org.clojure/clojure "1.4.0-master-SNAPSHOT"]
+                 [org.clojure/clojure "1.3.0"]
+                 [funnyplaces "1.2.1"]
                  [cadr "1.0.1-SNAPSHOT"]
                  [lambda "1.0.2-SNAPSHOT"]
                  [clj-http "0.2.5"]
