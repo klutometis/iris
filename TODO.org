@@ -1,44 +1,28 @@
-* TODO Domain-specific filters
-  Pre-filter on whether e.g. locality or stemmed category is valid; be
-  able to look these up.
-* TODO Ordered subsets with =^=
-* TODO Stemming with =/=
-  Or should we do it automatically?
-
-  [[http://dakrone.github.com/clojure-opennlp/][clojure-opennlp]] has some wordnet stuff, apparently; nope. Try [[http://projects.csail.mit.edu/jwi/][JWI]].
-
-  #+BEGIN_SRC clojure :tangle stem.clj :shebang #!/usr/bin/env clj
+* TODO Stemmed cuisines.
+  #+BEGIN_SRC clojure :tangle stemmed-cuisines.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
     
     (add-classpath "lib/*")
     (add-classpath "lib/dev/*")
     
     (use 'debug.core)
-    (use 'clojure.java.io)
-    (use 'clojure.test)
-    (use 'lambda.core)
+    (use 'clj-http.client)
+    (use 'clojure.data.json)
     
-    (import '(edu.mit.jwi Dictionary)
-            '(edu.mit.jwi.morph WordnetStemmer)
-            '(edu.mit.jwi.item POS))
+    (debug (:cuisine (read-json (:body (get "http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112")))))
     
-    (defλ dictionary-file []
-      (file (get (System/getenv) "WORDNET" "/usr/local/WordNet-3.0/dict/")))
-    
-    (defλ dictionary []
-      (let [dictionary (Dictionary. (dictionary-file))]
-        (.open dictionary)
-        dictionary))
-    
-    (defλ stemmer []
-      (WordnetStemmer. (dictionary)))
-    
-    (is (=
-         (into '() (.findStems (stemmer) "pastries" POS/NOUN))
-         '("pastry")))
   #+END_SRC
+    
+  Need to find a mechanism for dealing with multiple-word instances:
+  "hookah bars", etc.; the stemmer returns =("hookah_bars"
+  "hookah_bar")=. Split and try both? Why not.
+* TODO Domain-specific filters
+  Pre-filter on whether e.g. locality or stemmed category is valid; be
+  able to look these up.
 * TODO fastCGI and Clojure over JNA?
   [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
+* TODO Reject a rule during application.
+  If the query isn't an e.g. valid cuisine.
 * TODO Template-based parsing
   - [[http://www.kaeppel-soft.de/forschung/Template-1.004.pdf][Fault-tolerant template-based parsing]]; uses Smith-Watermann.
   - [[http://cran.r-project.org/web/packages/vwr/vwr.pdf][Levenshtein]], etc.
@@ -462,6 +446,50 @@
   We're going to have to stem the cuisine and compare it to the [[http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112][list
   of cuisines]]. Heh: at compile-time, pull them down and formalize them
   into a version-specific list.
+* DONE Ordered subsets with =^=
+  CLOSED: [2012-01-25 Wed 16:37]
+  - CLOSING NOTE [2012-01-25 Wed 16:37] \\
+    We're using =!= for ordered subsets, since =^= can't be readily
+    symbolized (reader-macros, anyone?).
+* DONE Stemming with =/=
+  CLOSED: [2012-01-25 Wed 16:37]
+  Or should we do it automatically?
+
+  [[http://dakrone.github.com/clojure-opennlp/][clojure-opennlp]] has some wordnet stuff, apparently; nope. Try [[http://projects.csail.mit.edu/jwi/][JWI]].
+
+  #+BEGIN_SRC clojure :tangle stem.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (use 'debug.core)
+    (use 'clojure.java.io)
+    (use 'clojure.test)
+    (use 'lambda.core)
+    
+    (import '(edu.mit.jwi Dictionary)
+            '(edu.mit.jwi.morph WordnetStemmer)
+            '(edu.mit.jwi.item POS))
+    
+    (defλ dictionary-file []
+      (file (get (System/getenv) "WORDNET" "/usr/local/WordNet-3.0/dict/")))
+    
+    (defλ dictionary []
+      (let [dictionary (Dictionary. (dictionary-file))]
+        (.open dictionary)
+        dictionary))
+    
+    (defλ stemmer []
+      (WordnetStemmer. (dictionary)))
+    
+    (debug (into '() (.findStems (stemmer) "hookah bars" POS/NOUN)))
+    
+    (is (= (into '() (.findStems (stemmer) "pastries" POS/NOUN))
+           '("pastry")))
+    
+    'mein-gott
+  #+END_SRC
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
