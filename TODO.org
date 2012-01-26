@@ -1,4 +1,3 @@
-* TODO Expose over Heroku.
 * TODO Domain-specific filters
   Pre-filter on whether e.g. locality or stemmed category is valid; be
   able to look these up.
@@ -6,7 +5,38 @@
 * TODO Stemming with =/=
   Or should we do it automatically?
 
-  [[http://dakrone.github.com/clojure-opennlp/][clojure-opennlp]] has some wordnet stuff, apparently;
+  [[http://dakrone.github.com/clojure-opennlp/][clojure-opennlp]] has some wordnet stuff, apparently; nope. Try [[http://projects.csail.mit.edu/jwi/][JWI]].
+
+  #+BEGIN_SRC clojure :tangle stem.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (use 'debug.core)
+    (use 'clojure.java.io)
+    (use 'clojure.test)
+    (use 'lambda.core)
+    
+    (import '(edu.mit.jwi Dictionary)
+            '(edu.mit.jwi.morph WordnetStemmer)
+            '(edu.mit.jwi.item POS))
+    
+    (defλ dictionary-file []
+      (file (get (System/getenv) "WORDNET" "/usr/local/WordNet-3.0/dict/")))
+    
+    (defλ dictionary []
+      (let [dictionary (Dictionary. (dictionary-file))]
+        (.open dictionary)
+        dictionary))
+    
+    (defλ stemmer []
+      (WordnetStemmer. (dictionary)))
+    
+    (is (=
+         (into '() (.findStems (stemmer) "pastries" POS/NOUN))
+         '("pastry")))
+  #+END_SRC
 * TODO fastCGI and Clojure over JNA?
   [[https://github.com/Chouser/clojure-jna][clojure-jna]] and Chicken's [[https://code.call-cc.org/svn/chicken-eggs/release/4/fastcgi/trunk/fastcgi.scm][fastcgi]] implementation. [[http://nakkaya.com/2009/11/16/java-native-access-from-clojure/][Shit]]; [[http://www.paullegato.com/blog/jni-leiningen-native-path/][ok]].
 * TODO Template-based parsing
@@ -420,6 +450,9 @@
     
     (factual! *key* *secret*)
     
+    ;;; Need the singular for some cuisines, not others (e.g. pasteries,
+    ;;; sandwiches); can we stem and singularize both cuisines and search
+    ;;; terms?
     (debug (fetch :restaurants-us :filters {:cuisine {:$search "cafe"}}))
     
     ;;; `Cafes', for instance, doesn't work.
@@ -427,9 +460,8 @@
   #+END_SRC
 
   We're going to have to stem the cuisine and compare it to the [[http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112][list
-  of cuisines]].
-
-  Heh: at compile-time, pull them down
+  of cuisines]]. Heh: at compile-time, pull them down and formalize them
+  into a version-specific list.
 * DONE Get something working.
   CLOSED: [2012-01-17 Tue 15:09]
   #+BEGIN_SRC java :tangle working.bsh :shebang #!/usr/bin/env bsh
