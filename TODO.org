@@ -1,3 +1,5 @@
+* TODO Screen cast using Chrome's [[http://googlecode.blogspot.com/2011/10/new-text-to-speech-api-for-chrome.html][text-to-speech]], [[http://chrome.blogspot.com/2011/03/talking-to-your-computer-with-html5.html][speech-to-text]] and [[http://blog.heroku.com/archives/2011/7/5/clojure_on_heroku/][heroku]].
+  Also, [[https://github.com/weavejester/hiccup][programmatic html]] (i.e. vectors $\to$ html).
 * TODO Stemmed cuisines.
   #+BEGIN_SRC clojure :tangle stemmed-cuisines.clj :shebang #!/usr/bin/env clj
     (use 'add-classpath.core)
