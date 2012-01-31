@@ -10,7 +10,8 @@
                  [net.sourceforge.javaflacencoder/java-flac-encoder "0.2.3"]
                  [de.huxhorn.sulky/de.huxhorn.sulky.3rdparty.jlayer "1.0"]
                  [slingshot "0.10.1"]
-                 [edu.mit/jwi "2.2.2"]]
+                 [edu.mit/jwi "2.2.2"]
+                 [egamble/let-else "1.0.0"]]
   :dev-dependencies [[debug "1.0.0-SNAPSHOT"]]
   :repositories {"conjars" "http://conjars.org/repo/"}
   :main iris.core)
