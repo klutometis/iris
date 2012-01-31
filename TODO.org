@@ -13,8 +13,43 @@
     (use 'debug.core)
     (use 'clj-http.client)
     (use 'clojure.data.json)
+    (use 'lambda.core)
+    (use 'clojure.java.io)
+    (use 'clojure.string)
+    (use 'let-else)
+    (use 'cadr.core)
     
-    (debug (:cuisine (read-json (:body (get "http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112")))))
+    (import '(edu.mit.jwi Dictionary)
+            '(edu.mit.jwi.morph WordnetStemmer)
+            '(edu.mit.jwi.item POS))
+    
+    (defλ dictionary-file []
+      (file (clojure.core/get (System/getenv) "WORDNET" "/usr/local/WordNet-3.0/dict/")))
+    
+    (defλ dictionary []
+      (let [dictionary (Dictionary. (dictionary-file))]
+        (.open dictionary)
+        dictionary))
+    
+    (defλ stemmer []
+      (WordnetStemmer. (dictionary)))
+    
+    (let [stemmer (stemmer)]
+      (defλ stems [part-of-speech word]
+        (into '() (.findStems stemmer word part-of-speech))))
+    
+    (def noun-stems (partial stems POS/NOUN))
+    
+    (def de-flatworm #(replace % \_ \space))
+    
+    (def ^:dynamic *url* "http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112")
+    
+    (debug (map (fn [cuisine]
+                  (let [stems (noun-stems cuisine)]
+                    (if (empty? stems)
+                      (lower-case cuisine)
+                      (de-flatworm (car stems)))))
+                (:cuisine (read-json (:body (get *url*))))))
     
   #+END_SRC
     
