@@ -1,24 +1,12 @@
+* TODO Mechanism for rejecting matches beyond regex
+  Comparing e.g. cuisine to a list of cuisines.
 * TODO Screen cast using Chrome's [[http://googlecode.blogspot.com/2011/10/new-text-to-speech-api-for-chrome.html][text-to-speech]], [[http://chrome.blogspot.com/2011/03/talking-to-your-computer-with-html5.html][speech-to-text]] and [[http://blog.heroku.com/archives/2011/7/5/clojure_on_heroku/][heroku]].
   Also, [[https://github.com/weavejester/hiccup][programmatic html]] (i.e. vectors $\to$ html); this [[https://github.com/mmcgrana/ring][ring-jetty
   adapter]] is one way to go: nice [[http://mmcgrana.github.com/2010/03/clojure-web-development-ring.html][tute]].
 
   [[http://thecomputersarewinning.com/post/clojure-heroku-noir-mongo][Noir and heroku]] are not mutually exclusive.
 * TODO Stemmed cuisines.
-  #+BEGIN_SRC clojure :tangle stemmed-cuisines.clj :shebang #!/usr/bin/env clj
-    (use 'add-classpath.core)
-    
-    (add-classpath "lib/*")
-    (add-classpath "lib/dev/*")
-    
-    (use 'debug.core)
-    (use 'clj-http.client)
-    (use 'clojure.data.json)
-    (use 'lambda.core)
-    (use 'clojure.java.io)
-    (use 'clojure.string)
-    (use 'let-else)
-    (use 'cadr.core)
-    
+  #+BEGIN_SRC clojure :tangle stemmer.clj
     (import '(edu.mit.jwi Dictionary)
             '(edu.mit.jwi.morph WordnetStemmer)
             '(edu.mit.jwi.item POS))
@@ -40,16 +28,40 @@
     
     (def noun-stems (partial stems POS/NOUN))
     
+    
+  #+END_SRC
+
+  #+BEGIN_SRC clojure :tangle stemmed-cuisines.clj :shebang #!/usr/bin/env clj
+    (use 'add-classpath.core)
+    
+    (add-classpath "lib/*")
+    (add-classpath "lib/dev/*")
+    
+    (use 'debug.core)
+    (use 'clojure.data.json)
+    (use 'lambda.core)
+    (use 'clojure.java.io)
+    (use 'clojure.string)
+    (use 'let-else)
+    (use 'cadr.core)
+    
+    (require '[clj-http.client :as client])
+    
+    (load-file "stemmer.clj")
+    
     (def de-flatworm #(replace % \_ \space))
     
     (def ^:dynamic *url* "http://developer.factual.com/download/attachments/2392149/factual_cuisines.json?version=1&modificationDate=1323825420112")
     
-    (debug (map (fn [cuisine]
-                  (let [stems (noun-stems cuisine)]
-                    (if (empty? stems)
-                      (lower-case cuisine)
-                      (de-flatworm (car stems)))))
-                (:cuisine (read-json (:body (get *url*))))))
+    (def cuisines
+      (map (fn [cuisine]
+             (let [stems (noun-stems cuisine)]
+               (if (empty? stems)
+                 (lower-case cuisine)
+                 (de-flatworm (car stems)))))
+           (:cuisine (read-json (:body (client/get *url*))))))
+    
+    ;; (debug cuisines)
     
   #+END_SRC
     
@@ -142,6 +154,8 @@
     (use 'lambda.core)
     (use 'debug.core)
     (use 'cadr.core)
+    
+    (load-file "stemmed-cuisines.clj")
     
     (def make-rules hash-map)
     
